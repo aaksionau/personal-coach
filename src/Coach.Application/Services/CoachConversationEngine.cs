@@ -14,7 +14,8 @@ namespace Coach.Application.Services;
 public sealed class CoachConversationEngine(
     CoachContextBuilder contextBuilder,
     IChatMessageStore chatMessageStore,
-    IChatCompletionClient chatCompletionClient)
+    IChatCompletionClient chatCompletionClient,
+    IGoalActionExecutor goalActionExecutor)
 {
     public async Task<ConversationTurn> SendMessageAsync(string coachSlug, string userMessage, CancellationToken cancellationToken)
     {
@@ -27,7 +28,13 @@ public sealed class CoachConversationEngine(
         conversation.AddRange(context.RecentMessages);
         conversation.Add(userChatMessage);
 
-        var reply = await chatCompletionClient.GetReplyAsync(context.Persona.SystemPrompt, conversation, cancellationToken);
+        var systemPrompt = context.Persona.SystemPrompt + "\n\n" + GoalContextFormatter.Format(context.Goals);
+
+        var reply = await chatCompletionClient.GetReplyAsync(
+            systemPrompt,
+            conversation,
+            (toolName, argumentsJson, ct) => goalActionExecutor.ExecuteAsync(toolName, argumentsJson, coachSlug, ct),
+            cancellationToken);
 
         var assistantChatMessage = ChatMessage.Create(coachSlug, ChatMessageRole.Assistant, reply);
         await chatMessageStore.AddAsync(assistantChatMessage, cancellationToken);

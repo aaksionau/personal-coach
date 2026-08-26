@@ -15,8 +15,13 @@ public static class DependencyInjection
     public static IServiceCollection AddCoachInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = OrDefault(configuration.GetConnectionString("CoachDb"), "Host=localhost;Database=coach;Timeout=2");
-        services.AddDbContext<CoachDbContext>(options => options.UseNpgsql(connectionString));
+        // A factory, not a directly-injected scoped context: Blazor Server's DI scope lives for
+        // the whole circuit (the browser tab), not one interaction, so a scoped DbContext would
+        // accumulate tracked entities for the circuit's lifetime. Each store creates its own
+        // short-lived context per call instead.
+        services.AddDbContextFactory<CoachDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IChatMessageStore, ChatMessageStore>();
+        services.AddScoped<IGoalStore, GoalStore>();
 
         services.Configure<AzureAiOptions>(configuration.GetSection(AzureAiOptions.SectionName));
         // Falls back to placeholder values when unconfigured, matching the CoachDb connection
