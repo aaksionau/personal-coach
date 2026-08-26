@@ -1,4 +1,5 @@
 using Coach.Application.Interfaces;
+using Coach.Application.Models;
 using Coach.Domain.Entities;
 using Coach.Domain.Enums;
 
@@ -6,14 +7,16 @@ namespace Coach.Application.Services;
 
 /// <summary>
 /// Drives one chat turn: builds context, persists the user's message, calls the model deployment
-/// via <see cref="IChatCompletionClient"/>, and persists + returns the assistant's reply.
+/// via <see cref="IChatCompletionClient"/>, and persists + returns the assistant's reply. Returns
+/// the persisted entities themselves so callers render the authoritative record of the turn
+/// rather than reconstructing their own copy.
 /// </summary>
 public sealed class CoachConversationEngine(
     CoachContextBuilder contextBuilder,
     IChatMessageStore chatMessageStore,
     IChatCompletionClient chatCompletionClient)
 {
-    public async Task<string> SendMessageAsync(string coachSlug, string userMessage, CancellationToken cancellationToken)
+    public async Task<ConversationTurn> SendMessageAsync(string coachSlug, string userMessage, CancellationToken cancellationToken)
     {
         var context = await contextBuilder.BuildAsync(coachSlug, cancellationToken);
 
@@ -29,6 +32,6 @@ public sealed class CoachConversationEngine(
         var assistantChatMessage = ChatMessage.Create(coachSlug, ChatMessageRole.Assistant, reply);
         await chatMessageStore.AddAsync(assistantChatMessage, cancellationToken);
 
-        return reply;
+        return new ConversationTurn(userChatMessage, assistantChatMessage);
     }
 }

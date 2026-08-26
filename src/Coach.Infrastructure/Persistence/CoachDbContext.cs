@@ -5,7 +5,7 @@ using ChatMessageEntity = Coach.Domain.Entities.ChatMessage;
 
 namespace Coach.Infrastructure.Persistence;
 
-public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options) : DbContext(options)
+public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, CoachPersonaRegistry personaRegistry) : DbContext(options)
 {
     public DbSet<CoachEntity> Coaches => Set<CoachEntity>();
 
@@ -21,7 +21,7 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options) : D
 
             // Seeded from the Persona Registry -- the single source of truth for a coach's
             // slug/display name -- rather than duplicating "career"/"Career Coach" here.
-            var seedCoaches = new CoachPersonaRegistry().GetAll()
+            var seedCoaches = personaRegistry.GetAll()
                 .Select(persona => new CoachEntity { Slug = persona.Slug, DisplayName = persona.Name });
             entity.HasData(seedCoaches);
         });

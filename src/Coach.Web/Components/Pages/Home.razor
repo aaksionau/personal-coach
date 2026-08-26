@@ -35,6 +35,14 @@
                 </div>
             }
         }
+        @if (_pendingUserMessage is not null)
+        {
+            <div class="text-right">
+                <span class="inline-block rounded-lg bg-slate-900 px-3 py-2 text-white opacity-60">
+                    @_pendingUserMessage
+                </span>
+            </div>
+        }
     </div>
 
     @if (_error is not null)
@@ -67,6 +75,7 @@
     private string _draft = string.Empty;
     private bool _sending;
     private string? _error;
+    private string? _pendingUserMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -93,20 +102,22 @@
         _draft = string.Empty;
         _sending = true;
         _error = null;
-
-        _messages!.Add(ChatMessage.Create(CoachSlug, ChatMessageRole.User, userMessage));
+        _pendingUserMessage = userMessage;
 
         try
         {
-            var reply = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, _cts.Token);
-            _messages.Add(ChatMessage.Create(CoachSlug, ChatMessageRole.Assistant, reply));
+            var turn = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, _cts.Token);
+            _messages!.Add(turn.UserMessage);
+            _messages.Add(turn.AssistantMessage);
         }
         catch (Exception ex)
         {
+            _draft = userMessage;
             _error = $"Coach didn't reply: {ex.Message}";
         }
         finally
         {
+            _pendingUserMessage = null;
             _sending = false;
         }
     }
