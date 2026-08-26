@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Coach.Application.Models;
 
 namespace Coach.Application.Services;
@@ -5,8 +6,8 @@ namespace Coach.Application.Services;
 /// <summary>Registry of coach personas. Only the Career persona is registered in v1.</summary>
 public sealed class CoachPersonaRegistry
 {
-    private static readonly IReadOnlyDictionary<string, CoachPersona> Personas =
-        new Dictionary<string, CoachPersona>(StringComparer.Ordinal)
+    private static readonly Dictionary<string, CoachPersona> Personas =
+        new(StringComparer.Ordinal)
         {
             ["career"] = new CoachPersona(
                 Slug: "career",
@@ -19,13 +20,9 @@ public sealed class CoachPersonaRegistry
                 Tone: "direct, pragmatic, encouraging"),
         };
 
-    public CoachPersona Get(string slug)
-    {
-        if (Personas.TryGetValue(slug, out var persona))
-        {
-            return persona;
-        }
+    public bool TryGet(string slug, [MaybeNullWhen(false)] out CoachPersona persona) =>
+        Personas.TryGetValue(slug, out persona);
 
-        throw new KeyNotFoundException($"No coach persona registered for slug '{slug}'.");
-    }
+    /// <summary>All registered personas -- the single source of truth for seeding the Coach schema.</summary>
+    public IReadOnlyCollection<CoachPersona> GetAll() => Personas.Values;
 }

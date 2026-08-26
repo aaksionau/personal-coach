@@ -14,7 +14,11 @@ public sealed class CoachContextBuilder(IChatMessageStore chatMessageStore, Coac
 
     public async Task<CoachContext> BuildAsync(string coachSlug, CancellationToken cancellationToken)
     {
-        var persona = personaRegistry.Get(coachSlug);
+        if (!personaRegistry.TryGet(coachSlug, out var persona))
+        {
+            throw new ArgumentException($"No coach persona registered for slug '{coachSlug}'.", nameof(coachSlug));
+        }
+
         var recentMessages = await chatMessageStore.GetRecentAsync(coachSlug, RecentMessageWindow, cancellationToken);
         return new CoachContext(persona, recentMessages);
     }

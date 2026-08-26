@@ -1,5 +1,6 @@
 @page "/"
 @rendermode InteractiveServer
+@implements IDisposable
 @using Coach.Application.Interfaces
 @using Coach.Application.Services
 @using Coach.Domain.Entities
@@ -60,6 +61,8 @@
 @code {
     private const string CoachSlug = "career";
 
+    private readonly CancellationTokenSource _cts = new();
+
     private List<ChatMessage>? _messages;
     private string _draft = string.Empty;
     private bool _sending;
@@ -69,7 +72,7 @@
     {
         try
         {
-            var history = await ChatMessageStore.GetRecentAsync(CoachSlug, 50, CancellationToken.None);
+            var history = await ChatMessageStore.GetRecentAsync(CoachSlug, 50, _cts.Token);
             _messages = history.ToList();
         }
         catch (Exception ex)
@@ -91,26 +94,12 @@
         _sending = true;
         _error = null;
 
-        _messages!.Add(new ChatMessage
-        {
-            Id = Guid.NewGuid(),
-            CoachSlug = CoachSlug,
-            Role = ChatMessageRole.User,
-            Content = userMessage,
-            CreatedAtUtc = DateTimeOffset.UtcNow,
-        });
+        _messages!.Add(ChatMessage.Create(CoachSlug, ChatMessageRole.User, userMessage));
 
         try
         {
-            var reply = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, CancellationToken.None);
-            _messages.Add(new ChatMessage
-            {
-                Id = Guid.NewGuid(),
-                CoachSlug = CoachSlug,
-                Role = ChatMessageRole.Assistant,
-                Content = reply,
-                CreatedAtUtc = DateTimeOffset.UtcNow,
-            });
+            var reply = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, _cts.Token);
+            _messages.Add(ChatMessage.Create(CoachSlug, ChatMessageRole.Assistant, reply));
         }
         catch (Exception ex)
         {
@@ -120,5 +109,11 @@
         {
             _sending = false;
         }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
     }
 }

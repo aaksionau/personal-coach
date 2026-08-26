@@ -13,4 +13,13 @@ public sealed class ChatMessage
     public required string Content { get; init; }
 
     public required DateTimeOffset CreatedAtUtc { get; init; }
+
+    public static ChatMessage Create(string coachSlug, ChatMessageRole role, string content) => new()
+    {
+        Id = Guid.NewGuid(),
+        CoachSlug = coachSlug,
+        Role = role,
+        Content = content,
+        CreatedAtUtc = DateTimeOffset.UtcNow,
+    };
 }

@@ -17,14 +17,7 @@ public sealed class CoachConversationEngine(
     {
         var context = await contextBuilder.BuildAsync(coachSlug, cancellationToken);
 
-        var userChatMessage = new ChatMessage
-        {
-            Id = Guid.NewGuid(),
-            CoachSlug = coachSlug,
-            Role = ChatMessageRole.User,
-            Content = userMessage,
-            CreatedAtUtc = DateTimeOffset.UtcNow,
-        };
+        var userChatMessage = ChatMessage.Create(coachSlug, ChatMessageRole.User, userMessage);
         await chatMessageStore.AddAsync(userChatMessage, cancellationToken);
 
         var conversation = new List<ChatMessage>(context.RecentMessages.Count + 1);
@@ -33,14 +26,7 @@ public sealed class CoachConversationEngine(
 
         var reply = await chatCompletionClient.GetReplyAsync(context.Persona.SystemPrompt, conversation, cancellationToken);
 
-        var assistantChatMessage = new ChatMessage
-        {
-            Id = Guid.NewGuid(),
-            CoachSlug = coachSlug,
-            Role = ChatMessageRole.Assistant,
-            Content = reply,
-            CreatedAtUtc = DateTimeOffset.UtcNow,
-        };
+        var assistantChatMessage = ChatMessage.Create(coachSlug, ChatMessageRole.Assistant, reply);
         await chatMessageStore.AddAsync(assistantChatMessage, cancellationToken);
 
         return reply;

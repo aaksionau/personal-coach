@@ -1,3 +1,4 @@
+using Coach.Application.Services;
 using Microsoft.EntityFrameworkCore;
 using CoachEntity = Coach.Domain.Entities.Coach;
 using ChatMessageEntity = Coach.Domain.Entities.ChatMessage;
@@ -18,7 +19,11 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options) : D
             entity.Property(c => c.Slug).HasMaxLength(64);
             entity.Property(c => c.DisplayName).HasMaxLength(128);
 
-            entity.HasData(new CoachEntity { Slug = "career", DisplayName = "Career Coach" });
+            // Seeded from the Persona Registry -- the single source of truth for a coach's
+            // slug/display name -- rather than duplicating "career"/"Career Coach" here.
+            var seedCoaches = new CoachPersonaRegistry().GetAll()
+                .Select(persona => new CoachEntity { Slug = persona.Slug, DisplayName = persona.Name });
+            entity.HasData(seedCoaches);
         });
 
         modelBuilder.Entity<ChatMessageEntity>(entity =>
