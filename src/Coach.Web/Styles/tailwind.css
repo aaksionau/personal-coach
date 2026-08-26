@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* Tailwind has no built-in x-cloak support; Alpine relies on this rule to
+   hide x-cloak elements until it has initialized and evaluated x-show. */
+[x-cloak] {
+    display: none !important;
+}
