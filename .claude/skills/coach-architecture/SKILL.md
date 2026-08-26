@@ -16,7 +16,7 @@ Ports & adapters, four projects under `src/`, mirrored by one test project per s
    - `Services/` — orchestration and domain logic that's worth unit-testing against a fake port (`CoachContextBuilder`, `CoachConversationEngine`, `CoachPersonaRegistry`). A service is the thing tests exercise; the store/port behind it is swapped for a fake.
    - Never references EF Core, Npgsql, or the Azure OpenAI SDK directly.
 3. **`Coach.Infrastructure`** — the adapters. EF Core (`Persistence/`, one `CoachDbContext`, Npgsql/Postgres) and the Azure AI Foundry client (`Ai/`) live here, each implementing an `Application.Interfaces` port. Reads use `.AsNoTracking()`; DbSet entity config lives in `CoachDbContext.OnModelCreating`, one `modelBuilder.Entity<T>(...)` block per entity.
-4. **`Coach.Web`** — Blazor Server (interactive server render mode), Tailwind CSS (compiled via standalone CLI, no Node/npm), Alpine.js only for interactivity that doesn't warrant a Blazor round-trip. Pages inject Application services/ports directly via `@inject` — there is no separate web-facing service layer.
+4. **`Coach.Web`** — Blazor Server (interactive server render mode), Tailwind CSS (compiled via standalone CLI, no Node/npm), Alpine.js only for interactivity that doesn't warrant a Blazor round-trip. Pages inject Application services/ports directly via `@inject` — there is no separate web-facing service layer. See the `coach-ui-design` skill for the actual visual/interaction conventions.
 
 ## Wiring
 
