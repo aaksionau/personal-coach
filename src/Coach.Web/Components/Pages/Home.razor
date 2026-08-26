@@ -1,60 +1,124 @@
 @page "/"
-@using Npgsql
-@inject NpgsqlDataSource DataSource
+@rendermode InteractiveServer
+@using Coach.Application.Interfaces
+@using Coach.Application.Services
+@using Coach.Domain.Entities
+@using Coach.Domain.Enums
+@inject CoachConversationEngine ConversationEngine
+@inject IChatMessageStore ChatMessageStore
 
 <PageTitle>Coach</PageTitle>
 
-<div class="mx-auto max-w-2xl px-6 py-12">
-    <h1 class="text-3xl font-bold text-slate-900">Personal Coach</h1>
-    <p class="mt-2 text-slate-600">Deployment skeleton is up and reachable.</p>
+<div class="mx-auto flex h-screen max-w-2xl flex-col px-6 py-8">
+    <h1 class="text-2xl font-bold text-slate-900">Career Coach</h1>
 
-    <section class="mt-8 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Postgres</h2>
-        @if (_dbConnected is null)
+    <div class="mt-4 flex-1 space-y-3 overflow-y-auto rounded-lg border border-slate-200 bg-white p-4">
+        @if (_messages is null)
         {
-            <p class="mt-1 text-slate-600">Checking...</p>
+            <p class="text-slate-500">Loading conversation...</p>
         }
-        else if (_dbConnected == true)
+        else if (_messages.Count == 0)
         {
-            <p class="mt-1 font-medium text-emerald-700">Connected</p>
+            <p class="text-slate-500">Say hello to get started.</p>
         }
         else
         {
-            <p class="mt-1 font-medium text-red-700">Connection failed: @_dbError</p>
+            @foreach (var message in _messages)
+            {
+                <div class="@(message.Role == ChatMessageRole.User ? "text-right" : "text-left")" @key="message.Id">
+                    <span class="@(message.Role == ChatMessageRole.User
+                        ? "inline-block rounded-lg bg-slate-900 px-3 py-2 text-white"
+                        : "inline-block rounded-lg bg-slate-100 px-3 py-2 text-slate-900")">
+                        @message.Content
+                    </span>
+                </div>
+            }
         }
-    </section>
+    </div>
 
-    <section class="mt-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm" x-data="{ open: false }">
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Alpine.js</h2>
+    @if (_error is not null)
+    {
+        <p class="mt-2 font-medium text-red-700">@_error</p>
+    }
+
+    <form class="mt-4 flex gap-2" @onsubmit="SendAsync">
+        <input
+            class="flex-1 rounded border border-slate-300 px-3 py-2"
+            @bind="_draft"
+            @bind:event="oninput"
+            placeholder="Message your career coach..."
+            disabled="@_sending" />
         <button
-            type="button"
-            class="mt-2 rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
-            x-on:click="open = !open">
-            Toggle
+            type="submit"
+            class="rounded bg-slate-900 px-4 py-2 font-medium text-white disabled:opacity-50"
+            disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))">
+            Send
         </button>
-        <p class="mt-2 text-slate-600" x-show="open" x-cloak>
-            Alpine.js is wired up and handling this without a server round-trip.
-        </p>
-    </section>
+    </form>
 </div>
 
 @code {
-    private bool? _dbConnected;
-    private string? _dbError;
+    private const string CoachSlug = "career";
+
+    private List<ChatMessage>? _messages;
+    private string _draft = string.Empty;
+    private bool _sending;
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            await using var connection = await DataSource.OpenConnectionAsync();
-            await using var command = new NpgsqlCommand("SELECT 1", connection);
-            await command.ExecuteScalarAsync();
-            _dbConnected = true;
+            var history = await ChatMessageStore.GetRecentAsync(CoachSlug, 50, CancellationToken.None);
+            _messages = history.ToList();
         }
         catch (Exception ex)
         {
-            _dbConnected = false;
-            _dbError = ex.Message;
+            _messages = [];
+            _error = $"Couldn't load conversation history: {ex.Message}";
+        }
+    }
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_draft) || _sending)
+        {
+            return;
+        }
+
+        var userMessage = _draft;
+        _draft = string.Empty;
+        _sending = true;
+        _error = null;
+
+        _messages!.Add(new ChatMessage
+        {
+            Id = Guid.NewGuid(),
+            CoachSlug = CoachSlug,
+            Role = ChatMessageRole.User,
+            Content = userMessage,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+        });
+
+        try
+        {
+            var reply = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, CancellationToken.None);
+            _messages.Add(new ChatMessage
+            {
+                Id = Guid.NewGuid(),
+                CoachSlug = CoachSlug,
+                Role = ChatMessageRole.Assistant,
+                Content = reply,
+                CreatedAtUtc = DateTimeOffset.UtcNow,
+            });
+        }
+        catch (Exception ex)
+        {
+            _error = $"Coach didn't reply: {ex.Message}";
+        }
+        finally
+        {
+            _sending = false;
         }
     }
 }

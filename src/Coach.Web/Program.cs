@@ -1,5 +1,8 @@
+using Coach.Application;
+using Coach.Infrastructure;
+using Coach.Infrastructure.Persistence;
 using Coach.Web.Components;
-using Npgsql;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,18 +10,24 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Falls back to a syntactically valid but unreachable connection string when
-// unconfigured -- NpgsqlDataSource.Create requires a parseable host even
-// though it doesn't connect until a query runs, so an empty string would
-// crash the app at startup instead of letting the home page's health check
-// report the failure.
-var connectionString = builder.Configuration.GetConnectionString("CoachDb");
-builder.Services.AddSingleton(_ =>
-    NpgsqlDataSource.Create(string.IsNullOrWhiteSpace(connectionString)
-        ? "Host=localhost;Database=coach;Timeout=2"
-        : connectionString));
+builder.Services.AddCoachApplication();
+builder.Services.AddCoachInfrastructure(builder.Configuration);
 
 var app = builder.Build();
+
+// Best-effort: an unreachable Postgres at startup shouldn't take the whole app down -- the chat
+// page surfaces the resulting failure the same way the health check used to.
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        await scope.ServiceProvider.GetRequiredService<CoachDbContext>().Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Failed to apply Coach.Web database migrations at startup.");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
