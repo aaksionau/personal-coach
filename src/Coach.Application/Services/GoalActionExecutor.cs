@@ -64,14 +64,14 @@ public sealed class GoalActionExecutor(GoalTrackingService goalTrackingService) 
         JsonSerializer.Deserialize<T>(json, JsonOptions)
             ?? throw new ArgumentException($"Missing arguments for tool call (expected {typeof(T).Name}).");
 
-    private sealed record CreateGoalArgs([property: JsonPropertyName("title")] string Title);
+    private sealed record CreateGoalArgs([property: JsonPropertyName(GoalActionFieldName.Title)] string Title);
 
     private sealed record AddActionItemArgs(
-        [property: JsonPropertyName("goal_id")] Guid GoalId,
-        [property: JsonPropertyName("description")] string Description,
-        [property: JsonPropertyName("due_date")] DateOnly? DueDate);
+        [property: JsonPropertyName(GoalActionFieldName.GoalId)] Guid GoalId,
+        [property: JsonPropertyName(GoalActionFieldName.Description)] string Description,
+        [property: JsonPropertyName(GoalActionFieldName.DueDate)] DateOnly? DueDate);
 
     private sealed record SetActionItemStatusArgs(
-        [property: JsonPropertyName("action_item_id")] Guid ActionItemId,
-        [property: JsonPropertyName("status")] string Status);
+        [property: JsonPropertyName(GoalActionFieldName.ActionItemId)] Guid ActionItemId,
+        [property: JsonPropertyName(GoalActionFieldName.Status)] string Status);
 }

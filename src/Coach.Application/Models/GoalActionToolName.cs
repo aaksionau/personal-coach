@@ -12,3 +12,24 @@ public static class GoalActionToolName
 
     public const string SetActionItemStatus = "set_action_item_status";
 }
+
+/// <summary>
+/// Tool-call argument field names shared the same way as <see cref="GoalActionToolName"/>: the
+/// Infrastructure tool JSON schemas and the Application records that deserialize a call's
+/// arguments both reference these constants, so a rename on one side can't silently desync from
+/// the other.
+/// </summary>
+public static class GoalActionFieldName
+{
+    public const string Title = "title";
+
+    public const string GoalId = "goal_id";
+
+    public const string Description = "description";
+
+    public const string DueDate = "due_date";
+
+    public const string ActionItemId = "action_item_id";
+
+    public const string Status = "status";
+}

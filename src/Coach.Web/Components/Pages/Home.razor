@@ -1,6 +1,5 @@
 @page "/"
 @rendermode InteractiveServer
-@inherits BusyComponentBase
 @implements IDisposable
 @using Coach.Application.Interfaces
 @using Coach.Application.Services
@@ -28,33 +27,23 @@
         {
             @foreach (var message in _messages)
             {
-                <div class="flex @(message.Role == ChatMessageRole.User ? "justify-end" : "justify-start")" @key="message.Id">
-                    <div class="@(message.Role == ChatMessageRole.User
-                        ? "max-w-[85%] rounded-2xl rounded-br-sm bg-slate-900 px-4 py-2.5 text-white shadow-sm sm:max-w-[75%]"
-                        : "max-w-[85%] rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-4 py-2.5 text-slate-800 shadow-sm sm:max-w-[75%]")">
-                        <p class="whitespace-pre-wrap text-sm leading-relaxed">@message.Content</p>
-                    </div>
-                </div>
+                <ChatBubble IsUser="message.Role == ChatMessageRole.User" Content="message.Content" @key="message.Id" />
             }
         }
         @if (_pendingUserMessage is not null)
         {
-            <div class="flex justify-end">
-                <div class="max-w-[85%] rounded-2xl rounded-br-sm bg-slate-900 px-4 py-2.5 text-white opacity-60 shadow-sm sm:max-w-[75%]">
-                    <p class="whitespace-pre-wrap text-sm leading-relaxed">@_pendingUserMessage</p>
-                </div>
-            </div>
+            <ChatBubble IsUser="true" Content="_pendingUserMessage" Pending="true" />
         }
     </div>
 
-    @if (Error is not null)
+    @if (_busy.Error is not null)
     {
         <div
             class="mb-3 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700"
             x-data="{ show: true }"
             x-show="show"
             x-transition>
-            <span>@Error</span>
+            <span>@_busy.Error</span>
             <button type="button" class="shrink-0 font-medium text-red-700/70 hover:text-red-900" x-on:click="show = false">✕</button>
         </div>
     }
@@ -65,11 +54,11 @@
             @bind="_draft"
             @bind:event="oninput"
             placeholder="Message your career coach..."
-            disabled="@Busy" />
+            disabled="@_busy.Busy" />
         <button
             type="submit"
             class="shrink-0 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
-            disabled="@(Busy || string.IsNullOrWhiteSpace(_draft))">
+            disabled="@(_busy.Busy || string.IsNullOrWhiteSpace(_draft))">
             Send
         </button>
     </form>
@@ -79,6 +68,7 @@
     private const string CoachSlug = "career";
 
     private readonly CancellationTokenSource _cts = new();
+    private readonly BusyState _busy = new();
 
     private List<ChatMessage>? _messages;
     private string _draft = string.Empty;
@@ -94,13 +84,13 @@
         catch (Exception ex)
         {
             _messages = [];
-            Error = $"Couldn't load conversation history: {ex.Message}";
+            _busy.Error = $"Couldn't load conversation history: {ex.Message}";
         }
     }
 
     private async Task SendAsync()
     {
-        if (string.IsNullOrWhiteSpace(_draft) || Busy)
+        if (string.IsNullOrWhiteSpace(_draft) || _busy.Busy)
         {
             return;
         }
@@ -109,25 +99,20 @@
         _draft = string.Empty;
         _pendingUserMessage = userMessage;
 
-        try
-        {
-            await RunBusyAsync(
-                async () =>
-                {
-                    var turn = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, _cts.Token);
-                    _messages!.Add(turn.UserMessage);
-                    _messages.Add(turn.AssistantMessage);
-                },
-                ex =>
-                {
-                    _draft = userMessage;
-                    return $"Coach didn't reply: {ex.Message}";
-                });
-        }
-        finally
-        {
-            _pendingUserMessage = null;
-        }
+        await _busy.RunAsync(
+            async () =>
+            {
+                var turn = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, _cts.Token);
+                _messages!.Add(turn.UserMessage);
+                _messages.Add(turn.AssistantMessage);
+            },
+            ex =>
+            {
+                _draft = userMessage;
+                return $"Coach didn't reply: {ex.Message}";
+            });
+
+        _pendingUserMessage = null;
     }
 
     public void Dispose()

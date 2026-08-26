@@ -37,8 +37,9 @@ public sealed class GoalStore(IDbContextFactory<CoachDbContext> dbContextFactory
             .OrderBy(a => a.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
+        var actionItemsByGoal = actionItems.ToLookup(a => a.GoalId);
         return goals
-            .Select(g => new GoalWithActionItems(g, actionItems.Where(a => a.GoalId == g.Id).ToList()))
+            .Select(g => new GoalWithActionItems(g, actionItemsByGoal[g.Id].ToList()))
             .ToList();
     }
 

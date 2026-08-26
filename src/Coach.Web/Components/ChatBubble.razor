@@ -1,0 +1,21 @@
+<div class="flex @(IsUser ? "justify-end" : "justify-start")">
+    <div class="@BubbleClass">
+        <p class="whitespace-pre-wrap text-sm leading-relaxed">@Content</p>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public bool IsUser { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Content { get; set; } = string.Empty;
+
+    /// <summary>Dims the bubble while its message hasn't been persisted by the server yet.</summary>
+    [Parameter]
+    public bool Pending { get; set; }
+
+    private string BubbleClass => IsUser
+        ? "max-w-[85%] rounded-2xl rounded-br-sm bg-slate-900 px-4 py-2.5 text-white shadow-sm sm:max-w-[75%]" + (Pending ? " opacity-60" : string.Empty)
+        : "max-w-[85%] rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-4 py-2.5 text-slate-800 shadow-sm sm:max-w-[75%]";
+}

@@ -1,6 +1,5 @@
 @page "/goals"
 @rendermode InteractiveServer
-@inherits BusyComponentBase
 @implements IDisposable
 @using Coach.Application.Models
 @using Coach.Application.Services
@@ -15,14 +14,14 @@
         <h1 class="text-xl font-semibold text-slate-900">Career Goals</h1>
         <p class="mt-1 text-sm text-slate-500">Track what you're working toward and the steps to get there.</p>
 
-        @if (Error is not null)
+        @if (_busy.Error is not null)
         {
             <div
                 class="mt-4 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700"
                 x-data="{ show: true }"
                 x-show="show"
                 x-transition>
-                <span>@Error</span>
+                <span>@_busy.Error</span>
                 <button type="button" class="shrink-0 font-medium text-red-700/70 hover:text-red-900" x-on:click="show = false">✕</button>
             </div>
         }
@@ -33,11 +32,11 @@
                 @bind="_newGoalTitle"
                 @bind:event="oninput"
                 placeholder="What do you want to work toward?"
-                disabled="@Busy" />
+                disabled="@_busy.Busy" />
             <button
                 type="submit"
                 class="shrink-0 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
-                disabled="@(Busy || string.IsNullOrWhiteSpace(_newGoalTitle))">
+                disabled="@(_busy.Busy || string.IsNullOrWhiteSpace(_newGoalTitle))">
                 Add goal
             </button>
         </form>
@@ -93,7 +92,7 @@
                                                 type="checkbox"
                                                 class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
                                                 checked="@isDone"
-                                                disabled="@Busy"
+                                                disabled="@_busy.Busy"
                                                 @onchange="@(e => ToggleActionItemAsync(actionItem.Id, (bool)e.Value!))" />
                                             <div class="min-w-0 flex-1">
                                                 <span class="@(isDone ? "text-sm text-slate-400 line-through" : "text-sm text-slate-800")">
@@ -120,20 +119,20 @@
                             <form x-show="adding" x-cloak x-transition class="flex flex-col gap-2 sm:flex-row" @onsubmit="() => AddActionItemAsync(goalWithItems.Goal.Id)">
                                 <input
                                     class="min-w-0 flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-                                    @bind="_newActionItemDescription[goalWithItems.Goal.Id]"
+                                    @bind="_actionItemDrafts[goalWithItems.Goal.Id].Description"
                                     @bind:event="oninput"
                                     placeholder="New action item..."
-                                    disabled="@Busy" />
+                                    disabled="@_busy.Busy" />
                                 <div class="flex gap-2">
                                     <input
                                         type="date"
                                         class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm text-slate-600 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-                                        @bind="_newActionItemDueDate[goalWithItems.Goal.Id]"
-                                        disabled="@Busy" />
+                                        @bind="_actionItemDrafts[goalWithItems.Goal.Id].DueDate"
+                                        disabled="@_busy.Busy" />
                                     <button
                                         type="submit"
                                         class="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
-                                        disabled="@(Busy || string.IsNullOrWhiteSpace(GetDraftDescription(goalWithItems.Goal.Id)))">
+                                        disabled="@(_busy.Busy || string.IsNullOrWhiteSpace(GetDraftDescription(goalWithItems.Goal.Id)))">
                                         Add
                                     </button>
                                 </div>
@@ -150,8 +149,8 @@
     private const string CoachSlug = "career";
 
     private readonly CancellationTokenSource _cts = new();
-    private readonly Dictionary<Guid, string> _newActionItemDescription = [];
-    private readonly Dictionary<Guid, DateOnly?> _newActionItemDueDate = [];
+    private readonly BusyState _busy = new();
+    private readonly Dictionary<Guid, ActionItemDraft> _actionItemDrafts = [];
 
     private List<GoalWithActionItems>? _goals;
     private string _newGoalTitle = string.Empty;
@@ -171,25 +170,24 @@
             _goals = goals.ToList();
             foreach (var goal in _goals)
             {
-                _newActionItemDescription.TryAdd(goal.Goal.Id, string.Empty);
-                _newActionItemDueDate.TryAdd(goal.Goal.Id, null);
+                _actionItemDrafts.TryAdd(goal.Goal.Id, new ActionItemDraft());
             }
         }
         catch (Exception ex)
         {
             _goals = [];
-            Error = $"Couldn't load goals: {ex.Message}";
+            _busy.Error = $"Couldn't load goals: {ex.Message}";
         }
     }
 
     private Task AddGoalAsync()
     {
-        if (string.IsNullOrWhiteSpace(_newGoalTitle) || Busy)
+        if (string.IsNullOrWhiteSpace(_newGoalTitle) || _busy.Busy)
         {
             return Task.CompletedTask;
         }
 
-        return RunBusyAsync(
+        return _busy.RunAsync(
             async () =>
             {
                 await GoalTrackingService.CreateGoalAsync(CoachSlug, _newGoalTitle, _cts.Token);
@@ -200,30 +198,30 @@
     }
 
     private string GetDraftDescription(Guid goalId) =>
-        _newActionItemDescription.GetValueOrDefault(goalId, string.Empty);
+        _actionItemDrafts.GetValueOrDefault(goalId)?.Description ?? string.Empty;
 
     private Task AddActionItemAsync(Guid goalId)
     {
         var description = GetDraftDescription(goalId);
-        if (string.IsNullOrWhiteSpace(description) || Busy)
+        if (string.IsNullOrWhiteSpace(description) || _busy.Busy)
         {
             return Task.CompletedTask;
         }
 
-        return RunBusyAsync(
+        return _busy.RunAsync(
             async () =>
             {
-                var dueDate = _newActionItemDueDate.GetValueOrDefault(goalId);
-                await GoalTrackingService.AddActionItemAsync(CoachSlug, goalId, description, dueDate, _cts.Token);
-                _newActionItemDescription[goalId] = string.Empty;
-                _newActionItemDueDate[goalId] = null;
+                var draft = _actionItemDrafts[goalId];
+                await GoalTrackingService.AddActionItemAsync(CoachSlug, goalId, description, draft.DueDate, _cts.Token);
+                draft.Description = string.Empty;
+                draft.DueDate = null;
                 await LoadGoalsAsync();
             },
             ex => $"Couldn't add action item: {ex.Message}");
     }
 
     private Task ToggleActionItemAsync(Guid actionItemId, bool isDone) =>
-        RunBusyAsync(
+        _busy.RunAsync(
             async () =>
             {
                 var status = isDone ? ActionItemStatus.Done : ActionItemStatus.Open;
@@ -236,5 +234,12 @@
     {
         _cts.Cancel();
         _cts.Dispose();
+    }
+
+    private sealed class ActionItemDraft
+    {
+        public string Description { get; set; } = string.Empty;
+
+        public DateOnly? DueDate { get; set; }
     }
 }

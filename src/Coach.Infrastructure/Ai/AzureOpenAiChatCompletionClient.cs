@@ -42,10 +42,16 @@ public sealed class AzureOpenAiChatCompletionClient(ChatClient chatClient) : ICh
             }
 
             messages.Add(new AssistantChatMessage(response));
-            foreach (var toolCall in response.ToolCalls)
+
+            // The model can request several tool calls in one response; it hasn't seen any of
+            // their results yet, so they're independent and safe to run concurrently.
+            var toolCalls = response.ToolCalls.ToList();
+            var results = await Task.WhenAll(toolCalls.Select(toolCall =>
+                executeGoalAction(toolCall.FunctionName, toolCall.FunctionArguments.ToString(), cancellationToken)));
+
+            for (var i = 0; i < toolCalls.Count; i++)
             {
-                var result = await executeGoalAction(toolCall.FunctionName, toolCall.FunctionArguments.ToString(), cancellationToken);
-                messages.Add(new ToolChatMessage(toolCall.Id, result));
+                messages.Add(new ToolChatMessage(toolCalls[i].Id, results[i]));
             }
         }
 
