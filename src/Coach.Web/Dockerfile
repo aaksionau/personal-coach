@@ -1,3 +1,7 @@
+# Build context is the repo root (this project references sibling projects
+# under src/) -- invoke as `docker build -f src/Coach.Web/Dockerfile .` from
+# the repo root.
+
 # --- assets: Tailwind CSS (standalone CLI, no Node.js) + vendored Alpine.js ---
 FROM debian:bookworm-slim AS assets
 WORKDIR /assets
@@ -12,21 +16,25 @@ RUN curl -sSLo tailwindcss "https://github.com/tailwindlabs/tailwindcss/releases
     && chmod +x tailwindcss
 RUN curl -sSLo alpine.min.js "https://cdn.jsdelivr.net/npm/alpinejs@${ALPINE_JS_VERSION}/dist/cdn.min.js"
 
-COPY Styles/ Styles/
-COPY Components/ Components/
+COPY src/Coach.Web/Styles/ Styles/
+COPY src/Coach.Web/Components/ Components/
 RUN ./tailwindcss -i Styles/tailwind.css -o app.css --minify
 
 # --- build: dotnet publish (picks up the generated assets into wwwroot before publish) ---
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY Coach.Web.csproj .
-RUN dotnet restore Coach.Web.csproj
+COPY personal-coach.slnx .
+COPY src/Coach.Domain/Coach.Domain.csproj src/Coach.Domain/
+COPY src/Coach.Application/Coach.Application.csproj src/Coach.Application/
+COPY src/Coach.Infrastructure/Coach.Infrastructure.csproj src/Coach.Infrastructure/
+COPY src/Coach.Web/Coach.Web.csproj src/Coach.Web/
+RUN dotnet restore src/Coach.Web/Coach.Web.csproj
 
-COPY . .
-COPY --from=assets /assets/app.css wwwroot/css/app.css
-COPY --from=assets /assets/alpine.min.js wwwroot/js/alpine.min.js
-RUN dotnet publish Coach.Web.csproj -c Release -o /app/publish
+COPY src/ src/
+COPY --from=assets /assets/app.css src/Coach.Web/wwwroot/css/app.css
+COPY --from=assets /assets/alpine.min.js src/Coach.Web/wwwroot/js/alpine.min.js
+RUN dotnet publish src/Coach.Web/Coach.Web.csproj -c Release -o /app/publish
 
 # --- final: aspnet runtime only ---
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
