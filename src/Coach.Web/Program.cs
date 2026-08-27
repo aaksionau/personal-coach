@@ -16,9 +16,13 @@ builder.Services.AddCoachInfrastructure(builder.Configuration);
 builder.Services.AddCoachGoogleCalendar(builder.Configuration);
 builder.Services.AddCoachSms(builder.Configuration);
 
-// The weekly consolidated check-in digest: generated across all four coaches and texted out.
+// The Check-in Scheduler's two triggers, both texting out through the shared SMS Notifier:
+// (1) the weekly consolidated digest across all four coaches, and (2) ad-hoc nudges as individual
+// action-item due dates approach.
 builder.Services.Configure<DigestOptions>(builder.Configuration.GetSection(DigestOptions.SectionName));
 builder.Services.AddHostedService<WeeklyDigestScheduler>();
+builder.Services.Configure<NudgeOptions>(builder.Configuration.GetSection(NudgeOptions.SectionName));
+builder.Services.AddHostedService<DueDateNudgeScheduler>();
 
 var app = builder.Build();
 

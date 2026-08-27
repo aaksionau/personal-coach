@@ -1,9 +1,15 @@
-# SMS notifier + weekly digest setup
+# SMS notifier + check-in texts setup
 
-Once a week `Coach.Web`'s `WeeklyDigestScheduler` (a hosted `BackgroundService`)
-asks the model to write **one** consolidated check-in text covering all four
-coaches — grounded in the current goals, action items, reflections, calendar, and
-values profile, not a template — and sends it to the user's phone.
+`Coach.Web`'s Check-in Scheduler sends the user two kinds of text, both through
+the same SMS notifier:
+
+- **Weekly digest** — once a week `WeeklyDigestScheduler` asks the model to write
+  **one** consolidated check-in covering all four coaches, grounded in the current
+  goals, action items, reflections, calendar, and values profile, not a template.
+- **Due-date nudges** — daily `DueDateNudgeScheduler` texts a short model-written
+  nudge for each open action item whose due date is within `Nudge:LeadTimeDays`
+  (or recently overdue), grounded in that one action item. It keeps nudging (once
+  per day, escalating) until the item is done.
 
 Delivery is **one-way**: the text goes out through a Google Fi email-to-SMS
 gateway and there is no inbound path. The user always replies by opening the web
@@ -18,13 +24,16 @@ app, never by texting back.
 - `SmsMessageComposer` builds the `MailMessage` (recipient, from, plain-text body,
   no subject); `SmtpEmailSender` does the actual send over port 587 / STARTTLS.
 - `SmtpSmsNotifier` **throws** when unconfigured or when the send fails — the
-  scheduler logs it and waits for next week rather than crashing the app, but the
-  failure is visible in `kubectl logs` (unlike the calendar reader, which stays
-  silent so a coach turn is never blocked).
+  scheduler logs it and waits for the next run rather than crashing the app, but
+  the failure is visible in `kubectl logs` (unlike the calendar reader, which
+  stays silent so a coach turn is never blocked). The nudge scheduler wraps each
+  item, so one failed nudge doesn't block the others in that run (it retries next
+  day, since only a sent nudge is written to the `DueDateNudge` log).
 - `WeeklyDigestService` assembles the cross-coach context and calls the shared
-  `AIAgent`. Like the Conversation Engine, its model-calling glue carries no tests
-  by design; the context assembly (`CoachContextBuilder.BuildAllTrackedStatesAsync`,
-  `WeeklyDigestPromptComposer`) is covered.
+  `AIAgent`. `DueDateNudgeService` does the same for a single action item via
+  `DueDateNudgePromptComposer`. Like the Conversation Engine, their model-calling
+  glue carries no tests by design; the composers and
+  `CoachContextBuilder.BuildAllTrackedStatesAsync` are covered.
 
 ## Prerequisites
 
@@ -38,25 +47,32 @@ app, never by texting back.
 
 ## Config
 
-Bound from the `Sms` section (`src/Coach.Infrastructure.Sms/SmsOptions.cs`) and the
-`Digest` section (`src/Coach.Web/BackgroundServices/DigestOptions.cs`):
+Bound from the `Sms` section (`src/Coach.Infrastructure.Sms/SmsOptions.cs`), the
+`Digest` section (`src/Coach.Web/BackgroundServices/DigestOptions.cs`), and the
+`Nudge` section (`src/Coach.Web/BackgroundServices/NudgeOptions.cs`):
 
-| Setting             | Value                                                    |
-| ------------------- | -------------------------------------------------------- |
-| `Sms:SmtpUsername`  | the sending Gmail address (also the From address)        |
-| `Sms:SmtpPassword`  | the Gmail **app password** (not the account password)    |
-| `Sms:ToNumber`      | destination phone number (non-digits are stripped)       |
-| `Sms:GatewayDomain` | `msg.fi.google.com` (default)                            |
-| `Sms:SmtpHost`      | `smtp.gmail.com` (default)                               |
-| `Sms:SmtpPort`      | `587` (default)                                          |
-| `Digest:Enabled`    | `true` (default); `false` keeps the scheduler dormant    |
-| `Digest:DayOfWeek`  | `Monday` (default)                                       |
-| `Digest:TimeOfDay`  | `08:00:00` (default), local to `Digest:TimeZoneId`       |
-| `Digest:TimeZoneId` | IANA id, `America/Chicago` (default); falls back to UTC  |
+| Setting                     | Value                                                   |
+| --------------------------- | ------------------------------------------------------- |
+| `Sms:SmtpUsername`          | the sending Gmail address (also the From address)       |
+| `Sms:SmtpPassword`          | the Gmail **app password** (not the account password)   |
+| `Sms:ToNumber`              | destination phone number (non-digits are stripped)      |
+| `Sms:GatewayDomain`         | `msg.fi.google.com` (default)                           |
+| `Sms:SmtpHost`              | `smtp.gmail.com` (default)                              |
+| `Sms:SmtpPort`              | `587` (default)                                         |
+| `Digest:Enabled`            | `true` (default); `false` keeps the scheduler dormant   |
+| `Digest:DayOfWeek`          | `Monday` (default)                                      |
+| `Digest:TimeOfDay`          | `08:00:00` (default), local to `Digest:TimeZoneId`      |
+| `Digest:TimeZoneId`         | IANA id, `America/Chicago` (default); falls back to UTC |
+| `Nudge:Enabled`             | `true` (default); `false` keeps the scheduler dormant   |
+| `Nudge:TimeOfDay`           | `08:00:00` (default), local to `Nudge:TimeZoneId`       |
+| `Nudge:TimeZoneId`          | IANA id, `America/Chicago` (default); falls back to UTC |
+| `Nudge:LeadTimeDays`        | `2` (default) — nudge once a due date is this close     |
+| `Nudge:StopAfterOverdueDays`| `7` (default) — stop nudging past this many days overdue|
 
-**Local dev:** the digest scheduler is disabled in `appsettings.Development.json`.
+**Local dev:** both schedulers are disabled in `appsettings.Development.json`.
 To exercise a real send locally, set the `Sms:*` values via user-secrets and flip
-`Digest:Enabled` back on (or invoke `WeeklyDigestService` from a scratch harness):
+`Digest:Enabled` / `Nudge:Enabled` back on (or invoke `WeeklyDigestService` /
+`DueDateNudgeService` from a scratch harness):
 
 ```powershell
 dotnet user-secrets --project src/Coach.Web set "Sms:SmtpUsername" "..."
@@ -68,12 +84,12 @@ dotnet user-secrets --project src/Coach.Web set "Sms:ToNumber" "..."
 Kubernetes secret in the `coach` namespace, projected as `Sms__SmtpUsername` /
 `Sms__SmtpPassword` / `Sms__ToNumber` env vars — wired via the `04-coach-platform`
 Terraform module in the sibling `home-server` repo, alongside the existing
-`AzureAi__*` and `GoogleCalendar__*` secrets. Set `Digest__TimeZoneId` there if
-Central time isn't wanted.
+`AzureAi__*` and `GoogleCalendar__*` secrets. Set `Digest__TimeZoneId` /
+`Nudge__TimeZoneId` there if Central time isn't wanted.
 
 ## Notes
 
-- Gmail SMTP caps a free account at ~500 recipients/day — a single weekly text is
-  far under any limit.
+- Gmail SMTP caps a free account at ~500 recipients/day — a weekly digest plus a
+  handful of daily nudges is far under any limit.
 - If the app password is revoked (or 2SV is turned off), the send fails loudly on
-  the next weekly run; generate a new one and update the secret.
+  the next scheduled run; generate a new one and update the secret.

@@ -1,11 +1,13 @@
 namespace Coach.Web.BackgroundServices;
 
 /// <summary>
-/// The pure "when does the digest next fire" arithmetic, split out of
-/// <see cref="WeeklyDigestScheduler"/> so the day-of-week / time-of-day / DST-gap handling is
-/// unit-tested without a running host. The scheduler itself stays a thin delay loop over this.
+/// The pure "when does the next check-in fire" arithmetic, split out of the schedulers so the
+/// day-of-week / time-of-day / DST-gap handling is unit-tested without a running host. Backs both
+/// triggers of the Check-in Scheduler: <see cref="WeeklyDigestScheduler"/> (weekly, via
+/// <see cref="NextOccurrenceUtc"/>) and <see cref="DueDateNudgeScheduler"/> (daily, via
+/// <see cref="NextDailyOccurrenceUtc"/>). Each scheduler stays a thin delay loop over this.
 /// </summary>
-internal static class DigestSchedule
+internal static class CheckInSchedule
 {
     /// <summary>
     /// Resolves an IANA (or Windows) time-zone id to a <see cref="TimeZoneInfo"/>, falling back to
@@ -42,6 +44,29 @@ internal static class DigestSchedule
             localRun = localRun.AddDays(7);
         }
 
+        return ToUtcPastAnyGap(localRun, timeZone);
+    }
+
+    /// <summary>
+    /// The next moment (UTC) at <paramref name="timeOfDay"/> in <paramref name="timeZone"/>,
+    /// strictly after <paramref name="nowUtc"/> -- today's occurrence if it is still ahead,
+    /// otherwise tomorrow's. Same DST-gap handling as <see cref="NextOccurrenceUtc"/>.
+    /// </summary>
+    internal static DateTimeOffset NextDailyOccurrenceUtc(
+        DateTimeOffset nowUtc, TimeZoneInfo timeZone, TimeSpan timeOfDay)
+    {
+        var localNow = TimeZoneInfo.ConvertTime(nowUtc, timeZone).DateTime;
+        var localRun = localNow.Date + timeOfDay;
+        if (localRun <= localNow)
+        {
+            localRun = localRun.AddDays(1);
+        }
+
+        return ToUtcPastAnyGap(localRun, timeZone);
+    }
+
+    private static DateTimeOffset ToUtcPastAnyGap(DateTime localRun, TimeZoneInfo timeZone)
+    {
         var unspecified = DateTime.SpecifyKind(localRun, DateTimeKind.Unspecified);
         while (timeZone.IsInvalidTime(unspecified))
         {

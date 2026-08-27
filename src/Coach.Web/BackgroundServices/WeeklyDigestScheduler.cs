@@ -8,7 +8,7 @@ namespace Coach.Web.BackgroundServices;
 /// The weekly check-in scheduler: once a week at the configured local day/time it has
 /// <see cref="WeeklyDigestService"/> generate one consolidated digest across all four coaches and
 /// sends it through <see cref="ISmsNotifier"/>. Thin orchestration over already-tested pieces (the
-/// next-fire arithmetic lives in <see cref="DigestSchedule"/>, which is tested; the delay loop and
+/// next-fire arithmetic lives in <see cref="CheckInSchedule"/>, which is tested; the delay loop and
 /// model call carry no tests of their own); a failed run is logged and the loop simply waits for
 /// next week rather than crashing the app.
 /// </summary>
@@ -26,14 +26,14 @@ internal sealed class WeeklyDigestScheduler(
             return;
         }
 
-        var timeZone = DigestSchedule.ResolveTimeZone(
+        var timeZone = CheckInSchedule.ResolveTimeZone(
             settings.TimeZoneId,
             id => logger.LogWarning("Digest:TimeZoneId '{TimeZoneId}' not found; scheduling in UTC instead.", id));
 
         while (!stoppingToken.IsCancellationRequested)
         {
             var now = DateTimeOffset.UtcNow;
-            var nextRun = DigestSchedule.NextOccurrenceUtc(now, timeZone, settings.DayOfWeek, settings.TimeOfDay);
+            var nextRun = CheckInSchedule.NextOccurrenceUtc(now, timeZone, settings.DayOfWeek, settings.TimeOfDay);
             logger.LogInformation("Next weekly digest scheduled for {NextRun:u}.", nextRun);
 
             try

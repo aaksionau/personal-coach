@@ -18,6 +18,9 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
 
     public DbSet<Reflection> Reflections => Set<Reflection>();
 
+    // Bookkeeping for the ad-hoc due-date nudge trigger: one row per action item per day nudged.
+    public DbSet<DueDateNudge> DueDateNudges => Set<DueDateNudge>();
+
     // Global, not coach-scoped (no CoachSlug/FK); single row keyed by ValuesProfile.SingletonId.
     // Id is the PK by convention and Content maps to unbounded text, so no OnModelCreating block.
     public DbSet<ValuesProfile> ValuesProfiles => Set<ValuesProfile>();
@@ -77,6 +80,14 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
             // ChatMessage.Content, so an over-long value can't throw past ModelToolGuard.
             entity.HasOne<CoachEntity>().WithMany().HasForeignKey(r => r.CoachSlug);
             entity.HasIndex(r => new { r.CoachSlug, r.CreatedAtUtc });
+        });
+
+        modelBuilder.Entity<DueDateNudge>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+            entity.HasOne<ActionItem>().WithMany().HasForeignKey(n => n.ActionItemId).OnDelete(DeleteBehavior.Cascade);
+            // One nudge per action item per local calendar day -- the dedup guarantee the scheduler leans on.
+            entity.HasIndex(n => new { n.ActionItemId, n.NudgeDate }).IsUnique();
         });
 
         modelBuilder.Entity<GarminDailyMetric>(entity =>
