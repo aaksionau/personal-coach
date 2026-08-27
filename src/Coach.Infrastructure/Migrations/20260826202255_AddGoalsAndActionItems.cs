@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Coach.Infrastructure.Persistence.Migrations
+namespace Coach.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class AddGoalsAndActionItems : Migration

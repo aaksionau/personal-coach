@@ -1,8 +1,8 @@
 using Azure;
 using Azure.AI.OpenAI;
 using Coach.Application.Interfaces;
-using Coach.Infrastructure.Ai;
-using Coach.Infrastructure.Persistence;
+using Coach.Infrastructure.Options;
+using Coach.Infrastructure.Stores;
 using Microsoft.Agents.AI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;

@@ -1,8 +1,9 @@
 using Coach.Application.Interfaces;
 using Coach.Domain.Entities;
+using Coach.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
-namespace Coach.Infrastructure.Persistence;
+namespace Coach.Infrastructure.Stores;
 
 public sealed class ChatMessageStore(IDbContextFactory<CoachDbContext> dbContextFactory) : IChatMessageStore
 {

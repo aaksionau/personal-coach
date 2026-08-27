@@ -1,4 +1,4 @@
-namespace Coach.Infrastructure.Ai;
+namespace Coach.Infrastructure.Options;
 
 public sealed class AzureAiOptions
 {

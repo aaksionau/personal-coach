@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using CoachEntity = Coach.Domain.Entities.Coach;
 using ChatMessageEntity = Coach.Domain.Entities.ChatMessage;
 
-namespace Coach.Infrastructure.Persistence;
+namespace Coach.Infrastructure;
 
 public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, CoachPersonaRegistry personaRegistry) : DbContext(options)
 {

@@ -3,7 +3,7 @@ using Coach.Application.Models;
 using Coach.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Coach.Infrastructure.Persistence;
+namespace Coach.Infrastructure.Stores;
 
 public sealed class GoalStore(IDbContextFactory<CoachDbContext> dbContextFactory) : IGoalStore
 {

@@ -2,7 +2,7 @@ using Coach.Application.Interfaces;
 using Coach.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Coach.Infrastructure.Persistence;
+namespace Coach.Infrastructure.Stores;
 
 public sealed class ValuesProfileStore(IDbContextFactory<CoachDbContext> dbContextFactory) : IValuesProfileStore
 {

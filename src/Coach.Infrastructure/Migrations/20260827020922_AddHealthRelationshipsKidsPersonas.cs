@@ -4,7 +4,7 @@
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace Coach.Infrastructure.Persistence.Migrations
+namespace Coach.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class AddHealthRelationshipsKidsPersonas : Migration

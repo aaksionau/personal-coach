@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
-namespace Coach.Infrastructure.Persistence;
+namespace Coach.Infrastructure.Extensions;
 
 internal static class RecentQueryExtensions
 {

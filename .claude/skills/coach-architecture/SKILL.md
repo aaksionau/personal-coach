@@ -20,7 +20,13 @@ Ports & adapters, four projects under `src/`, mirrored by one test project per s
      - `Formatters/` — pure `static` functions rendering a slice of context into system-prompt text (`GoalContextFormatter`, `ReflectionContextFormatter`, `ValuesContextFormatter`, `CrossCoachContextFormatter`, and `CoachSystemPromptComposer` which stitches them together).
      - `Tools/` — model tools (`GoalActionTools`, `ReflectionTools`, `ValuesProfileTools`) plus the shared `ModelToolGuard`. Each tool is a plain typed method wrapped with `AIFunctionFactory.Create(...)` — the JSON schema the model sees is reflected from the method's parameters (plus `[Description]` attributes), not hand-written, and tool-call arguments arrive already bound to those typed parameters instead of raw JSON.
    - Never references EF Core, Npgsql, or a concrete model-provider SDK (Azure OpenAI, OpenAI) directly.
-3. **`Coach.Infrastructure`** — the adapters. EF Core (`Persistence/`, one `CoachDbContext`, Npgsql/Postgres) lives here implementing an `Application.Interfaces` port. The Azure OpenAI client (`Ai/`) lives here too, but instead of implementing a custom port it builds and registers the `AIAgent` singleton Application consumes directly (`AzureOpenAIClient.GetChatClient(...).AsIChatClient().AsAIAgent(...)`, from `Microsoft.Extensions.AI.OpenAI` + `Microsoft.Agents.AI`) — no persona instructions or tools are baked in at agent-creation time, since both vary per turn and are supplied on each `RunAsync` call. Reads use `.AsNoTracking()`; DbSet entity config lives in `CoachDbContext.OnModelCreating`, one `modelBuilder.Entity<T>(...)` block per entity.
+3. **`Coach.Infrastructure`** — the adapters, mostly EF Core (Npgsql/Postgres). The layer is flat — no `Persistence/` wrapper folder — split by kind:
+   - `CoachDbContext` sits at the project root (namespace `Coach.Infrastructure`). Reads use `.AsNoTracking()`; DbSet entity config lives in `CoachDbContext.OnModelCreating`, one `modelBuilder.Entity<T>(...)` block per entity.
+   - `Stores/` — the `Application.Interfaces` port implementations, one `*Store` per port (namespace `Coach.Infrastructure.Stores`).
+   - `Extensions/` — shared query helpers (`RecentQueryExtensions.ToRecentWindowAsync`, the "recent window" shape reused by the chat-message and reflection readers).
+   - `Migrations/` — EF migrations + model snapshot (namespace `Coach.Infrastructure.Migrations`).
+   - `Options/` — config POCOs bound via `services.Configure<T>(...)` (`AzureAiOptions`, section `"AzureAi"`).
+   - The Azure OpenAI wiring has no client class of its own: `DependencyInjection` builds and registers the `AIAgent` singleton Application consumes directly (`AzureOpenAIClient.GetChatClient(...).AsIChatClient().AsAIAgent(...)`, from `Microsoft.Extensions.AI.OpenAI` + `Microsoft.Agents.AI`) — no persona instructions or tools are baked in at agent-creation time, since both vary per turn and are supplied on each `RunAsync` call.
 4. **`Coach.Web`** — Blazor Server (interactive server render mode), Tailwind CSS (compiled via standalone CLI, no Node/npm), Alpine.js only for interactivity that doesn't warrant a Blazor round-trip. Pages inject Application services/ports directly via `@inject` — there is no separate web-facing service layer. See the `coach-ui-design` skill for the actual visual/interaction conventions.
 
 ## Wiring
@@ -47,7 +53,7 @@ Config-driven infra (`AzureAiOptions`, the Postgres connection string) falls bac
 
 1. Entity + enum(s) in `Coach.Domain/Entities` / `Enums`.
 2. Port in `Coach.Application/Interfaces`, composed view record (if needed) in `Models`, orchestration/validation logic in a new `Services/*Service` (or the matching `Builders`/`Agents`/`Formatters`/`Tools` folder if that's the kind of class it is).
-3. EF adapter in `Coach.Infrastructure/Persistence`, `DbSet` + `OnModelCreating` block on `CoachDbContext`, then a migration.
+3. EF adapter in `Coach.Infrastructure/Stores`, `DbSet` + `OnModelCreating` block on `CoachDbContext`, then a migration.
 4. Register the port/service in the relevant `DependencyInjection.cs`.
 5. Consume from `Coach.Web` via `@inject`, or from another `Coach.Application` class via constructor injection.
 6. Tests in `tests/Coach.Application.Tests` against the new service, using a new fake in `Fakes/` for its port.
