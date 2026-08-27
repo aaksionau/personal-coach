@@ -1,8 +1,8 @@
-using System.Text.Json;
 using Coach.Application.Services;
 using Coach.Application.Tests.Fakes;
 using Coach.Domain.Enums;
 using Microsoft.Extensions.AI;
+using static Coach.Application.Tests.ToolTestHelpers;
 
 namespace Coach.Application.Tests;
 
@@ -12,7 +12,7 @@ public class GoalActionToolsTests
     public async Task CreateGoal_PersistsTheGoal_ForTheCoach()
     {
         var store = new FakeGoalStore();
-        var tool = GetTool(new GoalActionTools(new GoalTrackingService(store), "career"), "create_goal");
+        var tool = GetTool(new GoalActionTools(new GoalTrackingService(store), "career").AsTools(), "create_goal");
 
         var result = await tool.InvokeAsync(new AIFunctionArguments { ["title"] = "Land a staff role" });
 
@@ -30,7 +30,7 @@ public class GoalActionToolsTests
         var tools = new GoalActionTools(goalService, "career");
         var goal = await goalService.CreateGoalAsync("career", "Land a staff role", CancellationToken.None);
 
-        var result = await GetTool(tools, "add_action_item").InvokeAsync(new AIFunctionArguments
+        var result = await GetTool(tools.AsTools(), "add_action_item").InvokeAsync(new AIFunctionArguments
         {
             ["goalId"] = goal.Id,
             ["description"] = "Update resume",
@@ -53,7 +53,7 @@ public class GoalActionToolsTests
         var goal = await goalService.CreateGoalAsync("career", "Land a staff role", CancellationToken.None);
         var actionItem = await goalService.AddActionItemAsync("career", goal.Id, "Update resume", null, CancellationToken.None);
 
-        var result = await GetTool(tools, "set_action_item_status").InvokeAsync(new AIFunctionArguments
+        var result = await GetTool(tools.AsTools(), "set_action_item_status").InvokeAsync(new AIFunctionArguments
         {
             ["actionItemId"] = actionItem.Id,
             ["status"] = "done",
@@ -73,7 +73,7 @@ public class GoalActionToolsTests
         var actionItem = await goalService.AddActionItemAsync("career", goal.Id, "Update resume", null, CancellationToken.None);
         var tools = new GoalActionTools(goalService, "health");
 
-        var result = await GetTool(tools, "set_action_item_status").InvokeAsync(new AIFunctionArguments
+        var result = await GetTool(tools.AsTools(), "set_action_item_status").InvokeAsync(new AIFunctionArguments
         {
             ["actionItemId"] = actionItem.Id,
             ["status"] = "done",
@@ -81,9 +81,4 @@ public class GoalActionToolsTests
 
         Assert.Contains("Could not complete the action", AsText(result));
     }
-
-    private static AIFunction GetTool(GoalActionTools tools, string name) =>
-        (AIFunction)tools.AsTools().Single(tool => tool.Name == name);
-
-    private static string AsText(object? result) => ((JsonElement)result!).GetString()!;
 }

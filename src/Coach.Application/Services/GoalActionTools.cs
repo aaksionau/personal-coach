@@ -27,7 +27,7 @@ public sealed class GoalActionTools(GoalTrackingService goalTrackingService, str
     private Task<string> CreateGoalAsync(
         [Description("Short goal title.")] string title,
         CancellationToken cancellationToken) =>
-        GuardedAsync(async () =>
+        ModelToolGuard.GuardedAsync(async () =>
         {
             var goal = await goalTrackingService.CreateGoalAsync(coachSlug, title, cancellationToken);
             return $"Created goal '{goal.Title}' (goal id: {goal.Id}).";
@@ -38,7 +38,7 @@ public sealed class GoalActionTools(GoalTrackingService goalTrackingService, str
         [Description("What needs to be done.")] string description,
         [Description("Optional due date, formatted YYYY-MM-DD.")] DateOnly? dueDate,
         CancellationToken cancellationToken) =>
-        GuardedAsync(async () =>
+        ModelToolGuard.GuardedAsync(async () =>
         {
             var actionItem = await goalTrackingService.AddActionItemAsync(coachSlug, goalId, description, dueDate, cancellationToken);
             return $"Added action item '{actionItem.Description}' (action item id: {actionItem.Id}).";
@@ -48,7 +48,7 @@ public sealed class GoalActionTools(GoalTrackingService goalTrackingService, str
         [Description("The action item id shown in the current goals list.")] Guid actionItemId,
         [Description("Either 'open' or 'done'.")] string status,
         CancellationToken cancellationToken) =>
-        GuardedAsync(async () =>
+        ModelToolGuard.GuardedAsync(async () =>
         {
             var parsedStatus = string.Equals(status, "done", StringComparison.OrdinalIgnoreCase)
                 ? ActionItemStatus.Done
@@ -56,21 +56,4 @@ public sealed class GoalActionTools(GoalTrackingService goalTrackingService, str
             var actionItem = await goalTrackingService.SetActionItemStatusAsync(coachSlug, actionItemId, parsedStatus, cancellationToken);
             return $"Action item '{actionItem.Description}' is now {actionItem.Status}.";
         });
-
-    /// <summary>
-    /// Tool-call arguments are untrusted model output, and the model may reference a goal/action
-    /// item id that doesn't exist or doesn't belong to this coach -- report that back as text for
-    /// the model to see rather than throwing.
-    /// </summary>
-    private static async Task<string> GuardedAsync(Func<Task<string>> action)
-    {
-        try
-        {
-            return await action();
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
-        {
-            return $"Could not complete the action: {ex.Message}";
-        }
-    }
 }

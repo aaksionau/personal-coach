@@ -24,7 +24,11 @@ public class CoachContextBuilderTests
                 },
             ],
         };
-        var builder = new CoachContextBuilder(store, new CoachPersonaRegistry(), new GoalTrackingService(new FakeGoalStore()));
+        var builder = new CoachContextBuilder(
+            store,
+            new CoachPersonaRegistry(),
+            new GoalTrackingService(new FakeGoalStore()),
+            new ReflectionService(new FakeReflectionStore()));
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -36,7 +40,11 @@ public class CoachContextBuilderTests
     public async Task BuildAsync_RequestsRecentMessages_ForTheGivenCoach()
     {
         var store = new FakeChatMessageStore();
-        var builder = new CoachContextBuilder(store, new CoachPersonaRegistry(), new GoalTrackingService(new FakeGoalStore()));
+        var builder = new CoachContextBuilder(
+            store,
+            new CoachPersonaRegistry(),
+            new GoalTrackingService(new FakeGoalStore()),
+            new ReflectionService(new FakeReflectionStore()));
 
         await builder.BuildAsync("career", CancellationToken.None);
 
@@ -50,11 +58,34 @@ public class CoachContextBuilderTests
         var goalStore = new FakeGoalStore();
         var goalService = new GoalTrackingService(goalStore);
         await goalService.CreateGoalAsync("career", "Land a staff role", CancellationToken.None);
-        var builder = new CoachContextBuilder(new FakeChatMessageStore(), new CoachPersonaRegistry(), goalService);
+        var builder = new CoachContextBuilder(
+            new FakeChatMessageStore(),
+            new CoachPersonaRegistry(),
+            goalService,
+            new ReflectionService(new FakeReflectionStore()));
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
         Assert.Single(context.Goals);
         Assert.Equal("Land a staff role", context.Goals[0].Goal.Title);
+    }
+
+    [Fact]
+    public async Task BuildAsync_IncludesTheCoachsRecentReflections_WithoutInvokingAModel()
+    {
+        var reflectionStore = new FakeReflectionStore();
+        var reflectionService = new ReflectionService(reflectionStore);
+        await reflectionService.RecordReflectionAsync("career", "I default to yes under pressure.", CancellationToken.None);
+        var builder = new CoachContextBuilder(
+            new FakeChatMessageStore(),
+            new CoachPersonaRegistry(),
+            new GoalTrackingService(new FakeGoalStore()),
+            reflectionService);
+
+        var context = await builder.BuildAsync("career", CancellationToken.None);
+
+        Assert.Single(context.Reflections);
+        Assert.Equal("I default to yes under pressure.", context.Reflections[0].Content);
+        Assert.Equal("career", reflectionStore.LastRequestedCoachSlug);
     }
 }
