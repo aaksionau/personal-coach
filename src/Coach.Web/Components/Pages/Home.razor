@@ -27,12 +27,12 @@
         {
             @foreach (var message in _messages)
             {
-                <ChatBubble IsUser="message.Role == ChatMessageRole.User" Content="message.Content" @key="message.Id" />
+                <ChatBubble IsUser="message.Role == ChatMessageRole.User" Content="@message.Content" @key="message.Id" />
             }
         }
         @if (_pendingUserMessage is not null)
         {
-            <ChatBubble IsUser="true" Content="_pendingUserMessage" Pending="true" />
+            <ChatBubble IsUser="true" Content="@_pendingUserMessage" Pending="true" />
         }
     </div>
 

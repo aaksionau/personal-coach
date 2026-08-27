@@ -11,11 +11,11 @@
     <div class="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
         @foreach (var message in _messages)
         {
-            <ChatBubble IsUser="message.IsUser" Content="message.Content" @key="message.Id" />
+            <ChatBubble IsUser="message.IsUser" Content="@message.Content" @key="message.Id" />
         }
         @if (_pendingUserMessage is not null)
         {
-            <ChatBubble IsUser="true" Content="_pendingUserMessage" Pending="true" />
+            <ChatBubble IsUser="true" Content="@_pendingUserMessage" Pending="true" />
         }
     </div>
 
