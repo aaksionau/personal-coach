@@ -8,7 +8,7 @@ namespace Coach.Application.Services;
 /// <summary>
 /// CRUD and status-transition logic for Goals/Action Items, scoped per coach. This is the public
 /// interface Goal Tracking is tested against -- <see cref="IGoalStore"/> is swapped for a fake in
-/// tests, the same way <see cref="CoachContextBuilder"/> is tested against a fake message store.
+/// tests, the same way <see cref="Coach.Application.Builders.CoachContextBuilder"/> is tested against a fake message store.
 /// </summary>
 public sealed class GoalTrackingService(IGoalStore goalStore)
 {

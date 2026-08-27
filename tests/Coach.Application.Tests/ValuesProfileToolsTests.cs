@@ -1,4 +1,5 @@
 using Coach.Application.Services;
+using Coach.Application.Tools;
 using Coach.Application.Tests.Fakes;
 using Microsoft.Extensions.AI;
 using static Coach.Application.Tests.ToolTestHelpers;

@@ -7,7 +7,7 @@ namespace Coach.Application.Services;
 /// Reads and writes the user's single <see cref="ValuesProfile"/>. This is the public interface the
 /// Values Profile feature is tested against -- <see cref="IValuesProfileStore"/> is swapped for a
 /// fake in tests, the same way <see cref="ReflectionService"/> is tested against a fake store.
-/// Both the guided wizard (via <see cref="ValuesProfileTools"/>) and the direct-edit page save
+/// Both the guided wizard (via <see cref="Coach.Application.Tools.ValuesProfileTools"/>) and the direct-edit page save
 /// through <see cref="SaveProfileAsync"/>, so the "one row, upserted" invariant lives in one place.
 /// </summary>
 public sealed class ValuesProfileService(IValuesProfileStore valuesProfileStore)

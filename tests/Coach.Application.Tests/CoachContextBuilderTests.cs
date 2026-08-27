@@ -1,3 +1,4 @@
+using Coach.Application.Builders;
 using Coach.Application.Services;
 using Coach.Application.Tests.Fakes;
 using Coach.Domain.Entities;
@@ -69,15 +70,14 @@ public class CoachContextBuilderTests
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
-        Assert.Single(context.Goals);
-        Assert.Equal("Land a staff role", context.Goals[0].Goal.Title);
+        Assert.Single(context.OwnState.Goals);
+        Assert.Equal("Land a staff role", context.OwnState.Goals[0].Goal.Title);
     }
 
     [Fact]
     public async Task BuildAsync_IncludesTheCoachsRecentReflections_WithoutInvokingAModel()
     {
-        var reflectionStore = new FakeReflectionStore();
-        var reflectionService = new ReflectionService(reflectionStore);
+        var reflectionService = new ReflectionService(new FakeReflectionStore());
         await reflectionService.RecordReflectionAsync("career", "I default to yes under pressure.", CancellationToken.None);
         var builder = new CoachContextBuilder(
             new FakeChatMessageStore(),
@@ -88,9 +88,36 @@ public class CoachContextBuilderTests
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
-        Assert.Single(context.Reflections);
-        Assert.Equal("I default to yes under pressure.", context.Reflections[0].Content);
-        Assert.Equal("career", reflectionStore.LastRequestedCoachSlug);
+        Assert.Single(context.OwnState.Reflections);
+        Assert.Equal("I default to yes under pressure.", context.OwnState.Reflections[0].Content);
+    }
+
+    [Fact]
+    public async Task BuildAsync_IncludesTheOtherCoachesTrackedState_ButNotTheCalledCoachs()
+    {
+        var goalService = new GoalTrackingService(new FakeGoalStore());
+        await goalService.CreateGoalAsync("career", "Land a staff role", CancellationToken.None);
+        await goalService.CreateGoalAsync("health", "Sleep 8 hours", CancellationToken.None);
+
+        var reflectionService = new ReflectionService(new FakeReflectionStore());
+        await reflectionService.RecordReflectionAsync("health", "I skip workouts when work runs late.", CancellationToken.None);
+
+        var builder = new CoachContextBuilder(
+            new FakeChatMessageStore(),
+            new CoachPersonaRegistry(),
+            goalService,
+            reflectionService,
+            new ValuesProfileService(new FakeValuesProfileStore()));
+
+        var context = await builder.BuildAsync("career", CancellationToken.None);
+
+        Assert.Equal(
+            new[] { "Health Coach", "Kids Coach", "Relationships Coach" },
+            context.OtherCoachStates.Select(s => s.CoachName));
+
+        var health = context.OtherCoachStates.Single(s => s.CoachName == "Health Coach");
+        Assert.Equal("Sleep 8 hours", Assert.Single(health.Goals).Goal.Title);
+        Assert.Equal("I skip workouts when work runs late.", Assert.Single(health.Reflections).Content);
     }
 
     [Fact]

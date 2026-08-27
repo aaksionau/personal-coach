@@ -53,7 +53,7 @@ EF Core migrations apply automatically at startup (best-effort — a failure is 
 not fatal). To add a new migration:
 
 ```powershell
-dotnet ef migrations add <Name> --project src/Coach.Infrastructure --startup-project src/Coach.Web -o Persistence/Migrations
+dotnet ef migrations add <Name> --project src/Coach.Infrastructure --startup-project src/Coach.Web -o Migrations
 ```
 
 Run the Application-layer unit tests with:

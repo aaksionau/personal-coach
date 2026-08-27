@@ -1,6 +1,5 @@
 using Coach.Application;
 using Coach.Infrastructure;
-using Coach.Infrastructure.Persistence;
 using Coach.Web.Components;
 using Microsoft.EntityFrameworkCore;
 
