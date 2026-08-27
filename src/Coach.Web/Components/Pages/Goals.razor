@@ -1,19 +1,17 @@
 @page "/{CoachSlug}/goals"
 @rendermode InteractiveServer
-@implements IDisposable
+@inherits CoachScopedPage
 @using Coach.Application.Models
 @using Coach.Application.Services
 @using Coach.Domain.Entities
 @using Coach.Domain.Enums
 @inject GoalTrackingService GoalTrackingService
-@inject CoachPersonaRegistry Registry
-@inject NavigationManager Nav
 
-<PageTitle>Coach - Goals</PageTitle>
+<PageTitle>Coach - @(Persona?.ShortName) Goals</PageTitle>
 
 <div class="min-h-0 flex-1 overflow-y-auto">
     <div class="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-        <h1 class="text-xl font-semibold text-slate-900">Goals</h1>
+        <h1 class="text-xl font-semibold text-slate-900">@(Persona?.ShortName) Goals</h1>
         <p class="mt-1 text-sm text-slate-500">Track what you're working toward and the steps to get there.</p>
 
         @if (_busy.Error is not null)
@@ -148,31 +146,14 @@
 </div>
 
 @code {
-    [Parameter]
-    public string CoachSlug { get; set; } = string.Empty;
-
-    private readonly CancellationTokenSource _cts = new();
     private readonly BusyState _busy = new();
     private readonly Dictionary<Guid, ActionItemDraft> _actionItemDrafts = [];
 
-    private string? _loadedSlug;
     private List<GoalWithActionItems>? _goals;
     private string _newGoalTitle = string.Empty;
 
-    protected override Task OnParametersSetAsync()
+    protected override Task OnCoachChangedAsync()
     {
-        if (_loadedSlug == CoachSlug)
-        {
-            return Task.CompletedTask;
-        }
-
-        if (!Registry.TryGet(CoachSlug, out _))
-        {
-            Nav.NavigateTo("not-found");
-            return Task.CompletedTask;
-        }
-
-        _loadedSlug = CoachSlug;
         _goals = null;
         _newGoalTitle = string.Empty;
         _actionItemDrafts.Clear();
@@ -189,7 +170,7 @@
     {
         try
         {
-            var goals = await GoalTrackingService.GetGoalsAsync(CoachSlug, _cts.Token);
+            var goals = await GoalTrackingService.GetGoalsAsync(CoachSlug, CancellationToken);
             _goals = goals.ToList();
             foreach (var goal in _goals)
             {
@@ -213,7 +194,7 @@
         return _busy.RunAsync(
             async () =>
             {
-                await GoalTrackingService.CreateGoalAsync(CoachSlug, _newGoalTitle, _cts.Token);
+                await GoalTrackingService.CreateGoalAsync(CoachSlug, _newGoalTitle, CancellationToken);
                 _newGoalTitle = string.Empty;
                 await LoadGoalsAsync();
             },
@@ -235,7 +216,7 @@
             async () =>
             {
                 var draft = _actionItemDrafts[goalId];
-                await GoalTrackingService.AddActionItemAsync(CoachSlug, goalId, description, draft.DueDate, _cts.Token);
+                await GoalTrackingService.AddActionItemAsync(CoachSlug, goalId, description, draft.DueDate, CancellationToken);
                 draft.Description = string.Empty;
                 draft.DueDate = null;
                 await LoadGoalsAsync();
@@ -248,16 +229,10 @@
             async () =>
             {
                 var status = isDone ? ActionItemStatus.Done : ActionItemStatus.Open;
-                await GoalTrackingService.SetActionItemStatusAsync(CoachSlug, actionItemId, status, _cts.Token);
+                await GoalTrackingService.SetActionItemStatusAsync(CoachSlug, actionItemId, status, CancellationToken);
                 await LoadGoalsAsync();
             },
             ex => $"Couldn't update action item: {ex.Message}");
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
-    }
 
     private sealed class ActionItemDraft
     {

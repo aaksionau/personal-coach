@@ -10,41 +10,38 @@
     <header class="border-b border-slate-200 bg-white">
         <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
             <div class="flex items-center gap-2">
-                <a href="" class="flex items-center gap-2">
+                <a href="/" class="flex items-center gap-2">
                     <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-sm font-bold text-white">C</span>
                     <span class="text-base font-semibold text-slate-900">Coach</span>
                 </a>
-                @if (_coach is not null)
+                @if (_persona is not null)
                 {
                     <a
-                        href=""
+                        href="/"
                         title="Switch coach"
-                        class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100">
-                        @_coach.Name
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
-                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.148l3.71-3.918a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                        </svg>
+                        class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100">
+                        @_persona.ShortName
                     </a>
                 }
             </div>
-            @if (_coach is not null)
+            @if (_persona is not null)
             {
                 <nav class="flex items-center gap-1 text-sm font-medium">
                     <NavLink
-                        href="@_coach.Slug"
+                        href="@_persona.Slug"
                         Match="NavLinkMatch.All"
                         class="rounded-full px-3 py-1.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                         ActiveClass="bg-slate-900! text-white! hover:bg-slate-900!">
                         Chat
                     </NavLink>
                     <NavLink
-                        href="@($"{_coach.Slug}/goals")"
+                        href="@($"{_persona.Slug}/goals")"
                         class="rounded-full px-3 py-1.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                         ActiveClass="bg-slate-900! text-white! hover:bg-slate-900!">
                         Goals
                     </NavLink>
                     <NavLink
-                        href="@($"{_coach.Slug}/reflections")"
+                        href="@($"{_persona.Slug}/reflections")"
                         class="rounded-full px-3 py-1.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                         ActiveClass="bg-slate-900! text-white! hover:bg-slate-900!">
                         Reflections
@@ -66,27 +63,28 @@
 </div>
 
 @code {
-    private CoachPersona? _coach;
+    private CoachPersona? _persona;
 
     protected override void OnInitialized()
     {
         Nav.LocationChanged += OnLocationChanged;
-        ResolveCoach();
+        ResolvePersona();
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        ResolveCoach();
+        ResolvePersona();
         StateHasChanged();
     }
 
-    // The active coach is the first path segment (e.g. /health/goals -> "health"). The coach
-    // picker at "/" and any unknown slug resolve to null, which hides the pill and the nav.
-    private void ResolveCoach()
+    // MainLayout isn't a routed component, so it reads the active coach from the URL rather than a
+    // route parameter (unlike CoachScopedPage). The coach is the first path segment
+    // (/health/goals -> "health"); the picker at "/" and any unknown slug resolve to null, which
+    // hides the pill and the nav.
+    private void ResolvePersona()
     {
-        var path = new Uri(Nav.Uri).AbsolutePath.Trim('/');
-        var firstSegment = path.Split('/', 2)[0];
-        _coach = Registry.TryGet(firstSegment, out var coach) ? coach : null;
+        var firstSegment = new Uri(Nav.Uri).AbsolutePath.Trim('/').Split('/', 2)[0];
+        _persona = Registry.TryGet(firstSegment, out var persona) ? persona : null;
     }
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;

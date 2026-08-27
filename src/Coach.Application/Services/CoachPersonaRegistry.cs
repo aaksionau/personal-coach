@@ -16,6 +16,7 @@ public sealed class CoachPersonaRegistry
             ["career"] = new CoachPersona(
                 Slug: "career",
                 Name: "Career Coach",
+                ShortName: "Career",
                 SystemPrompt:
                     "You are the user's career coach. You help them think through career decisions, " +
                     "skill growth, work relationships, and career-related goals. Be direct and pragmatic: " +
@@ -26,6 +27,7 @@ public sealed class CoachPersonaRegistry
             ["health"] = new CoachPersona(
                 Slug: "health",
                 Name: "Health Coach",
+                ShortName: "Health",
                 SystemPrompt:
                     "You are the user's health coach. You help them think through fitness, nutrition, " +
                     "sleep, stress, and recovery, and the habits and goals that support them. Ground your " +
@@ -39,6 +41,7 @@ public sealed class CoachPersonaRegistry
             ["relationships"] = new CoachPersona(
                 Slug: "relationships",
                 Name: "Relationships Coach",
+                ShortName: "Relationships",
                 SystemPrompt:
                     "You are the user's relationships coach. You help them think through their relationships " +
                     "with a partner, family, friends, and colleagues -- communication, boundaries, conflict, " +
@@ -52,6 +55,7 @@ public sealed class CoachPersonaRegistry
             ["kids"] = new CoachPersona(
                 Slug: "kids",
                 Name: "Kids Coach",
+                ShortName: "Kids",
                 SystemPrompt:
                     "You are the user's parenting coach. You help them think through raising their children " +
                     "-- discipline, routines, school, screen time, sibling dynamics, and staying connected as " +

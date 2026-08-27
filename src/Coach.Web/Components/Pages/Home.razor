@@ -1,17 +1,14 @@
 @page "/{CoachSlug}"
 @rendermode InteractiveServer
-@implements IDisposable
+@inherits CoachScopedPage
 @using Coach.Application.Interfaces
-@using Coach.Application.Models
 @using Coach.Application.Services
 @using Coach.Domain.Entities
 @using Coach.Domain.Enums
 @inject CoachConversationEngine ConversationEngine
 @inject IChatMessageStore ChatMessageStore
-@inject CoachPersonaRegistry Registry
-@inject NavigationManager Nav
 
-<PageTitle>Coach - @(_persona?.Name ?? "Chat")</PageTitle>
+<PageTitle>Coach - @(Persona?.ShortName) Chat</PageTitle>
 
 <div class="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 sm:px-6">
     <div class="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
@@ -23,7 +20,7 @@
         {
             <div class="flex h-full flex-col items-center justify-center py-16 text-center">
                 <p class="text-lg font-medium text-slate-700">Say hello to get started</p>
-                <p class="mt-1 text-sm text-slate-500">Your @(_persona?.Name) is ready when you are.</p>
+                <p class="mt-1 text-sm text-slate-500">Your @(Persona?.ShortName) coach is ready when you are.</p>
             </div>
         }
         else
@@ -56,7 +53,7 @@
             class="min-w-0 flex-1 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm shadow-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
             @bind="_draft"
             @bind:event="oninput"
-            placeholder="Message your @(_persona?.Name)..."
+            placeholder="Message your @(Persona?.ShortName) coach..."
             disabled="@_busy.Busy" />
         <button
             type="submit"
@@ -68,31 +65,14 @@
 </div>
 
 @code {
-    [Parameter]
-    public string CoachSlug { get; set; } = string.Empty;
-
-    private readonly CancellationTokenSource _cts = new();
     private readonly BusyState _busy = new();
 
-    private CoachPersona? _persona;
     private List<ChatMessage>? _messages;
     private string _draft = string.Empty;
     private string? _pendingUserMessage;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnCoachChangedAsync()
     {
-        if (_persona?.Slug == CoachSlug)
-        {
-            return;
-        }
-
-        if (!Registry.TryGet(CoachSlug, out var persona))
-        {
-            Nav.NavigateTo("not-found");
-            return;
-        }
-
-        _persona = persona;
         _messages = null;
         _draft = string.Empty;
         _pendingUserMessage = null;
@@ -100,7 +80,7 @@
 
         try
         {
-            var history = await ChatMessageStore.GetRecentAsync(CoachSlug, 50, _cts.Token);
+            var history = await ChatMessageStore.GetRecentAsync(CoachSlug, 50, CancellationToken);
             _messages = history.ToList();
         }
         catch (Exception ex)
@@ -124,7 +104,7 @@
         await _busy.RunAsync(
             async () =>
             {
-                var turn = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, _cts.Token);
+                var turn = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, CancellationToken);
                 _messages!.Add(turn.UserMessage);
                 _messages.Add(turn.AssistantMessage);
             },
@@ -135,11 +115,5 @@
             });
 
         _pendingUserMessage = null;
-    }
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
     }
 }

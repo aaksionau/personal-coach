@@ -1,3 +1,7 @@
 namespace Coach.Application.Models;
 
-public sealed record CoachPersona(string Slug, string Name, string SystemPrompt, string Tone);
+/// <summary>
+/// A coach persona. <paramref name="Name"/> is the full label ("Career Coach"); <paramref name="ShortName"/>
+/// is the one-word domain used in headings, page titles, and the header switcher ("Career").
+/// </summary>
+public sealed record CoachPersona(string Slug, string Name, string ShortName, string SystemPrompt, string Tone);
