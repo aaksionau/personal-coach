@@ -5,16 +5,16 @@ using Coach.Domain.Entities;
 namespace Coach.Application.Services;
 
 /// <summary>
-/// Formats the cross-coach snapshot as text for the model's system prompt: a terse, id-free summary
-/// of what each of the user's other coaches is currently tracking, so advice from the coach being
-/// called can account for the other domains. The counterpart to <see cref="GoalContextFormatter"/>
+/// Formats the other coaches' tracked state as text for the model's system prompt: a terse, id-free
+/// summary of what each of the user's other coaches is currently tracking, so advice from the coach
+/// being called can account for the other domains. The counterpart to <see cref="GoalContextFormatter"/>
 /// and <see cref="ReflectionContextFormatter"/> for the cross-coach slice of a coach's context.
 /// </summary>
 public static class CrossCoachContextFormatter
 {
-    public static string Format(IReadOnlyList<CrossCoachSnapshot> snapshots)
+    public static string Format(IReadOnlyList<CoachTrackedState> otherCoachStates)
     {
-        var populated = snapshots.Where(HasSomething).ToList();
+        var populated = otherCoachStates.Where(s => s.Goals.Count > 0 || s.Reflections.Count > 0).ToList();
         if (populated.Count == 0)
         {
             return "The user's other coaches: nothing tracked yet.";
@@ -22,18 +22,15 @@ public static class CrossCoachContextFormatter
 
         var builder = new StringBuilder(
             "What the user's other coaches are working on (for cross-domain awareness -- you cannot act on these):\n");
-        foreach (var snapshot in populated)
+        foreach (var state in populated)
         {
-            builder.Append('\n').Append(snapshot.CoachName).Append(":\n");
-            AppendGoals(builder, snapshot.Goals);
-            AppendReflections(builder, snapshot.Reflections);
+            builder.Append('\n').Append(state.CoachName).Append(":\n");
+            AppendGoals(builder, state.Goals);
+            AppendReflections(builder, state.Reflections);
         }
 
         return builder.ToString();
     }
-
-    private static bool HasSomething(CrossCoachSnapshot snapshot) =>
-        snapshot.Goals.Count > 0 || snapshot.Reflections.Count > 0;
 
     private static void AppendGoals(StringBuilder builder, IReadOnlyList<GoalWithActionItems> goals)
     {
@@ -64,7 +61,8 @@ public static class CrossCoachContextFormatter
         builder.Append("  Recent reflections:\n");
         foreach (var reflection in reflections)
         {
-            ReflectionContextFormatter.AppendReflectionLine(builder, reflection, "  ");
+            builder.Append("  - (").Append(reflection.CreatedAtUtc.ToString("yyyy-MM-dd")).Append(") ")
+                .Append(reflection.Content).Append('\n');
         }
     }
 }

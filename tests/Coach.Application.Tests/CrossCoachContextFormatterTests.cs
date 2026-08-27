@@ -10,13 +10,13 @@ public class CrossCoachContextFormatterTests
     [Fact]
     public void Format_ReturnsAPlaceholder_WhenNoOtherCoachHasAnything()
     {
-        var snapshots = new[]
+        var otherCoachStates = new[]
         {
-            new CrossCoachSnapshot("Health Coach", [], []),
-            new CrossCoachSnapshot("Kids Coach", [], []),
+            new CoachTrackedState("Health Coach", [], []),
+            new CoachTrackedState("Kids Coach", [], []),
         };
 
-        var result = CrossCoachContextFormatter.Format(snapshots);
+        var result = CrossCoachContextFormatter.Format(otherCoachStates);
 
         Assert.Equal("The user's other coaches: nothing tracked yet.", result);
     }
@@ -36,16 +36,16 @@ public class CrossCoachContextFormatterTests
             CreatedAtUtc = new DateTimeOffset(2026, 8, 22, 7, 0, 0, TimeSpan.Zero),
         };
 
-        var snapshots = new[]
+        var otherCoachStates = new[]
         {
-            new CrossCoachSnapshot(
+            new CoachTrackedState(
                 "Health Coach",
                 [new GoalWithActionItems(healthGoal, [openItem, doneItem])],
                 [healthReflection]),
-            new CrossCoachSnapshot("Kids Coach", [], []),
+            new CoachTrackedState("Kids Coach", [], []),
         };
 
-        var result = CrossCoachContextFormatter.Format(snapshots);
+        var result = CrossCoachContextFormatter.Format(otherCoachStates);
 
         Assert.Contains("Health Coach:", result);
         Assert.Contains("  - Sleep 8 hours", result);
@@ -62,12 +62,12 @@ public class CrossCoachContextFormatterTests
     {
         var goal = Goal.Create("relationships", "Weekly date night");
 
-        var snapshots = new[]
+        var otherCoachStates = new[]
         {
-            new CrossCoachSnapshot("Relationships Coach", [new GoalWithActionItems(goal, [])], []),
+            new CoachTrackedState("Relationships Coach", [new GoalWithActionItems(goal, [])], []),
         };
 
-        var result = CrossCoachContextFormatter.Format(snapshots);
+        var result = CrossCoachContextFormatter.Format(otherCoachStates);
 
         Assert.Contains("  Goals:", result);
         Assert.DoesNotContain("Recent reflections:", result);

@@ -5,10 +5,10 @@ namespace Coach.Application.Services;
 
 /// <summary>
 /// Assembles the context bundle for a coach call. v1 includes the persona, a recent message
-/// window, the coach's own goal/action-item state, its recent reflections, the user's global
-/// values profile, and a cross-coach snapshot of the other personas' current goals/reflections --
-/// no calendar or Garmin data yet. Deliberately separate from the Conversation Engine so it's
-/// testable without a model call.
+/// window, the called coach's own goal/reflection state, the user's global values profile, and the
+/// other coaches' tracked state (so one coach can account for the other domains) -- no calendar or
+/// Garmin data yet. Deliberately separate from the Conversation Engine so it's testable without a
+/// model call.
 /// </summary>
 public sealed class CoachContextBuilder(
     IChatMessageStore chatMessageStore,
@@ -18,10 +18,10 @@ public sealed class CoachContextBuilder(
     ValuesProfileService valuesProfileService)
 {
     private const int RecentMessageWindow = 20;
-    private const int RecentReflectionWindow = 10;
+    private const int OwnReflectionWindow = 10;
 
-    /// <summary>Reflections per other coach in the cross-coach snapshot -- a terser window than a coach's own, since this is background awareness, not the working record.</summary>
-    private const int CrossCoachReflectionWindow = 3;
+    /// <summary>Reflections per other coach -- a terser window than a coach's own, since this is background awareness, not the working record.</summary>
+    private const int OtherCoachReflectionWindow = 3;
 
     public async Task<CoachContext> BuildAsync(string coachSlug, CancellationToken cancellationToken)
     {
@@ -31,39 +31,43 @@ public sealed class CoachContextBuilder(
         }
 
         var recentMessagesTask = chatMessageStore.GetRecentAsync(coachSlug, RecentMessageWindow, cancellationToken);
-        var goalsTask = goalTrackingService.GetGoalsAsync(coachSlug, cancellationToken);
-        var reflectionsTask = reflectionService.GetRecentReflectionsAsync(coachSlug, RecentReflectionWindow, cancellationToken);
         var valuesProfileTask = valuesProfileService.GetProfileAsync(cancellationToken);
-        var crossCoachTask = BuildCrossCoachSnapshotsAsync(coachSlug, cancellationToken);
-        await Task.WhenAll(recentMessagesTask, goalsTask, reflectionsTask, valuesProfileTask, crossCoachTask);
+        var ownStateTask = BuildTrackedStateAsync(persona, OwnReflectionWindow, cancellationToken);
+        var otherStatesTask = BuildOtherCoachStatesAsync(coachSlug, cancellationToken);
+        await Task.WhenAll(recentMessagesTask, valuesProfileTask, ownStateTask, otherStatesTask);
 
         return new CoachContext(
             persona,
             recentMessagesTask.Result,
-            goalsTask.Result,
-            reflectionsTask.Result,
+            ownStateTask.Result,
             valuesProfileTask.Result,
-            crossCoachTask.Result);
+            otherStatesTask.Result);
     }
 
     /// <summary>
-    /// One snapshot per registered persona other than <paramref name="coachSlug"/>, ordered by coach
-    /// name so the assembled context is deterministic. Read fresh here rather than cached, so a coach
-    /// always sees the other domains' current state.
+    /// The other registered personas' tracked state, ordered by coach name so the assembled context
+    /// is deterministic. Read fresh here rather than cached, so a coach always sees the other
+    /// domains' current state.
     /// </summary>
-    private async Task<IReadOnlyList<CrossCoachSnapshot>> BuildCrossCoachSnapshotsAsync(
+    private async Task<IReadOnlyList<CoachTrackedState>> BuildOtherCoachStatesAsync(
         string coachSlug, CancellationToken cancellationToken)
     {
         var otherPersonas = personaRegistry.GetAll()
             .Where(p => !string.Equals(p.Slug, coachSlug, StringComparison.Ordinal))
-            .OrderBy(p => p.Name, StringComparer.Ordinal)
-            .ToList();
+            .OrderBy(p => p.Name, StringComparer.Ordinal);
 
-        var snapshotTasks = otherPersonas.Select(async persona => new CrossCoachSnapshot(
-            persona.Name,
-            await goalTrackingService.GetGoalsAsync(persona.Slug, cancellationToken),
-            await reflectionService.GetRecentReflectionsAsync(persona.Slug, CrossCoachReflectionWindow, cancellationToken)));
+        return await Task.WhenAll(
+            otherPersonas.Select(p => BuildTrackedStateAsync(p, OtherCoachReflectionWindow, cancellationToken)));
+    }
 
-        return await Task.WhenAll(snapshotTasks);
+    /// <summary>One coach's goals and recent reflections -- the single seam both the own-coach and cross-coach paths read through.</summary>
+    private async Task<CoachTrackedState> BuildTrackedStateAsync(
+        CoachPersona persona, int reflectionWindow, CancellationToken cancellationToken)
+    {
+        var goalsTask = goalTrackingService.GetGoalsAsync(persona.Slug, cancellationToken);
+        var reflectionsTask = reflectionService.GetRecentReflectionsAsync(persona.Slug, reflectionWindow, cancellationToken);
+        await Task.WhenAll(goalsTask, reflectionsTask);
+
+        return new CoachTrackedState(persona.Name, goalsTask.Result, reflectionsTask.Result);
     }
 }

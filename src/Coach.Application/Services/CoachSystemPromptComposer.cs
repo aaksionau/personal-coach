@@ -14,7 +14,7 @@ public static class CoachSystemPromptComposer
     public static string Compose(CoachContext context) =>
         context.Persona.SystemPrompt
         + "\n\n" + ValuesContextFormatter.Format(context.ValuesProfile)
-        + "\n\n" + GoalContextFormatter.Format(context.Goals)
-        + "\n\n" + ReflectionContextFormatter.Format(context.Reflections)
-        + "\n\n" + CrossCoachContextFormatter.Format(context.CrossCoachSnapshots);
+        + "\n\n" + GoalContextFormatter.Format(context.OwnState.Goals)
+        + "\n\n" + ReflectionContextFormatter.Format(context.OwnState.Reflections)
+        + "\n\n" + CrossCoachContextFormatter.Format(context.OtherCoachStates);
 }

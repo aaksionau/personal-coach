@@ -20,17 +20,10 @@ public static class ReflectionContextFormatter
         var builder = new StringBuilder("Recent reflections (most recent last):\n");
         foreach (var reflection in reflections)
         {
-            AppendReflectionLine(builder, reflection, string.Empty);
+            builder.Append("- (").Append(reflection.CreatedAtUtc.ToString("yyyy-MM-dd")).Append(") ")
+                .Append(reflection.Content).Append('\n');
         }
 
         return builder.ToString();
     }
-
-    /// <summary>
-    /// Writes one dated reflection line at <paramref name="indent"/>. Shared with
-    /// <see cref="CrossCoachContextFormatter"/> so the date format lives in one place.
-    /// </summary>
-    internal static void AppendReflectionLine(StringBuilder builder, Reflection reflection, string indent) =>
-        builder.Append(indent).Append("- (").Append(reflection.CreatedAtUtc.ToString("yyyy-MM-dd")).Append(") ")
-            .Append(reflection.Content).Append('\n');
 }
