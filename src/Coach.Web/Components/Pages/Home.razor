@@ -1,6 +1,6 @@
-@page "/"
+@page "/{CoachSlug}"
 @rendermode InteractiveServer
-@implements IDisposable
+@inherits CoachScopedPage
 @using Coach.Application.Interfaces
 @using Coach.Application.Services
 @using Coach.Domain.Entities
@@ -8,7 +8,7 @@
 @inject CoachConversationEngine ConversationEngine
 @inject IChatMessageStore ChatMessageStore
 
-<PageTitle>Coach - Chat</PageTitle>
+<PageTitle>Coach - @CoachName Chat</PageTitle>
 
 <div class="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 sm:px-6">
     <div class="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
@@ -20,7 +20,7 @@
         {
             <div class="flex h-full flex-col items-center justify-center py-16 text-center">
                 <p class="text-lg font-medium text-slate-700">Say hello to get started</p>
-                <p class="mt-1 text-sm text-slate-500">Your career coach is ready when you are.</p>
+                <p class="mt-1 text-sm text-slate-500">Your @CoachName coach is ready when you are.</p>
             </div>
         }
         else
@@ -53,7 +53,7 @@
             class="min-w-0 flex-1 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm shadow-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
             @bind="_draft"
             @bind:event="oninput"
-            placeholder="Message your career coach..."
+            placeholder="Message your @CoachName coach..."
             disabled="@_busy.Busy" />
         <button
             type="submit"
@@ -65,20 +65,22 @@
 </div>
 
 @code {
-    private const string CoachSlug = "career";
-
-    private readonly CancellationTokenSource _cts = new();
     private readonly BusyState _busy = new();
 
     private List<ChatMessage>? _messages;
     private string _draft = string.Empty;
     private string? _pendingUserMessage;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnCoachChangedAsync()
     {
+        _messages = null;
+        _draft = string.Empty;
+        _pendingUserMessage = null;
+        _busy.Error = null;
+
         try
         {
-            var history = await ChatMessageStore.GetRecentAsync(CoachSlug, 50, _cts.Token);
+            var history = await ChatMessageStore.GetRecentAsync(CoachSlug, 50, CancellationToken);
             _messages = history.ToList();
         }
         catch (Exception ex)
@@ -102,7 +104,7 @@
         await _busy.RunAsync(
             async () =>
             {
-                var turn = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, _cts.Token);
+                var turn = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, CancellationToken);
                 _messages!.Add(turn.UserMessage);
                 _messages.Add(turn.AssistantMessage);
             },
@@ -113,11 +115,5 @@
             });
 
         _pendingUserMessage = null;
-    }
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
     }
 }

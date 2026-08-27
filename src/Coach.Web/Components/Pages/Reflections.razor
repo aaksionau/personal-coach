@@ -1,18 +1,18 @@
-@page "/reflections"
+@page "/{CoachSlug}/reflections"
 @rendermode InteractiveServer
-@implements IDisposable
+@inherits CoachScopedPage
 @using Coach.Application.Services
 @using Coach.Domain.Entities
 @inject ReflectionService ReflectionService
 
-<PageTitle>Coach - Reflections</PageTitle>
+<PageTitle>Coach - @CoachName Reflections</PageTitle>
 
 <div class="min-h-0 flex-1 overflow-y-auto">
     <div class="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-        <h1 class="text-xl font-semibold text-slate-900">Reflections</h1>
+        <h1 class="text-xl font-semibold text-slate-900">@CoachName Reflections</h1>
         <p class="mt-1 text-sm text-slate-500">
-            Insights and themes your career coach has noted from your check-ins over time. New reflections
-            are captured in chat &mdash; this is the record.
+            Insights and themes your @CoachName coach has noted from your check-ins over time.
+            New reflections are captured in chat &mdash; this is the record.
         </p>
 
         @if (_busy.Error is not null)
@@ -56,30 +56,25 @@
 </div>
 
 @code {
-    private const string CoachSlug = "career";
     private const int MaxReflections = 100;
 
-    private readonly CancellationTokenSource _cts = new();
     private readonly BusyState _busy = new();
 
     private IReadOnlyList<Reflection>? _reflections;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnCoachChangedAsync()
     {
+        _reflections = null;
+        _busy.Error = null;
+
         try
         {
-            _reflections = await ReflectionService.GetRecentReflectionsAsync(CoachSlug, MaxReflections, _cts.Token);
+            _reflections = await ReflectionService.GetRecentReflectionsAsync(CoachSlug, MaxReflections, CancellationToken);
         }
         catch (Exception ex)
         {
             _reflections = [];
             _busy.Error = $"Couldn't load reflections: {ex.Message}";
         }
-    }
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
     }
 }
