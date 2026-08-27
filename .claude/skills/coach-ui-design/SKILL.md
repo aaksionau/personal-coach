@@ -25,9 +25,19 @@ Razor treats a bare `@` as the start of a C# expression. Alpine's shorthand for 
 
 Nav uses Blazor's built-in `<NavLink>` for active-route styling (works in static SSR, no JS needed) rather than Alpine. Since the inactive and active utility classes land in the same rendered `class` attribute, use `ActiveClass="bg-slate-900! text-white!"` (trailing `!` = Tailwind v4's important modifier) so the active state reliably wins regardless of generated CSS order.
 
+## Coach-scoped pages and routing
+
+Every coach-facing page is scoped by a `{CoachSlug}` route parameter — `/{coach}` (chat), `/{coach}/goals`, `/{coach}/reflections`. `/` is the `CoachPicker` landing page (one card per persona from `CoachPersonaRegistry.GetAll()`); there is no bare `/goals`.
+
+- **Inherit `CoachScopedPage`** (`@inherits CoachScopedPage`, in `Components/`) rather than hand-rolling the parameter + validation. It exposes `[Parameter] CoachSlug`, the resolved `Persona`, and a `CancellationToken`; redirects to `not-found` on an unknown slug; and calls the `OnCoachChangedAsync()` override once per distinct coach.
+- **Reset page state in `OnCoachChangedAsync()`, not `OnInitializedAsync`.** Navigating between coaches on the same route (`/career` → `/health`) *reuses the component instance* — `OnInitialized`/`OnParametersSet` semantics won't reload for you, and stale data/`CancellationTokenSource` from the previous coach will leak. The base cancels its `CancellationToken` on every switch (and on dispose), so in-flight work for the old coach can't land on the new one — pass `CancellationToken` (the base's) to every async call, don't create your own CTS.
+- **`MainLayout` derives the active coach from the first URL path segment** (`/health/goals` → `health`), not a route parameter — it's not a routed component. It subscribes to `NavigationManager.LocationChanged`; the switcher pill and nav are hidden when the segment resolves to null (the picker, or an unknown slug).
+- **Header nav links are built relative to the active slug**: `href="@_persona.Slug"`, `href="@($"{_persona.Slug}/goals")"`. Interpolating an `href` string in C# is fine — only *class names* must stay literal for the Tailwind scanner (see Build pipeline gotchas).
+- **`CoachPersona.Name` vs `ShortName`**: `Name` is the full label ("Career Coach"); `ShortName` ("Career") is what goes in page `<h1>`s, `<PageTitle>`s, and the header switcher pill. `Tone` is a prompt-authoring attribute — never surface it as UI copy.
+
 ## Visual language
 
-- **Palette**: slate is the neutral base (backgrounds `slate-50`, text `slate-900`/`slate-600`, borders `slate-200`/`slate-300`). One small indigo accent (`indigo-50`/`indigo-700`) for the persona pill in the header. Red (`red-50`/`red-600`/`red-700`) is reserved for errors and overdue state — don't reach for it decoratively.
+- **Palette**: slate is the neutral base (backgrounds `slate-50`, text `slate-900`/`slate-600`, borders `slate-200`/`slate-300`). One small indigo accent (`indigo-50`/`indigo-700`) for the coach switcher pill in the header. Red (`red-50`/`red-600`/`red-700`) is reserved for errors and overdue state — don't reach for it decoratively.
 - **Shape**: `rounded-full` for pill controls (nav links, primary buttons, text inputs that aren't multi-line). `rounded-2xl` for cards and chat bubbles. `rounded-xl` for banners. `rounded-lg` for small nested controls (badges' container, per-item inputs).
 - **Layout**: content lives in a centered `max-w-3xl mx-auto` column with `px-4 sm:px-6` edge padding — keep new pages consistent with this rather than introducing a new max-width.
 - **Breakpoints**: mobile-first, only `sm:` (640px) is used so far since this is a narrow single-user tool (e.g. `grid-cols-1 sm:grid-cols-2`, `flex-col sm:flex-row`). Reach for `md:`/`lg:` only when a page's content genuinely benefits from more columns at wider widths, not by default.
