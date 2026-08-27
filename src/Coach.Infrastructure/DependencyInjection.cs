@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IGoalStore, GoalStore>();
         services.AddScoped<IReflectionStore, ReflectionStore>();
         services.AddScoped<IValuesProfileStore, ValuesProfileStore>();
+        services.AddScoped<IGarminMetricsStore, GarminMetricsStore>();
 
         services.Configure<AzureAiOptions>(configuration.GetSection(AzureAiOptions.SectionName));
         // Falls back to placeholder values when unconfigured, matching the CoachDb connection

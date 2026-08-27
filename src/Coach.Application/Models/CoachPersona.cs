@@ -3,8 +3,15 @@ namespace Coach.Application.Models;
 /// <summary>
 /// A coach persona. <see cref="Name"/> is the full label ("Career Coach"); <see cref="ShortName"/>
 /// is the one-word domain used in headings, page titles, and the header switcher ("Career").
+/// <see cref="IncludesGarminMetrics"/> is set only for the Health coach, whose context also
+/// carries the latest Garmin daily metrics.
 /// </summary>
-public sealed record CoachPersona(string Slug, string Name, string SystemPrompt, string Tone)
+public sealed record CoachPersona(
+    string Slug,
+    string Name,
+    string SystemPrompt,
+    string Tone,
+    bool IncludesGarminMetrics = false)
 {
     private const string CoachSuffix = " Coach";
 

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Coach.GarminIngestion</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Coach.Application\Coach.Application.csproj" />
+    <ProjectReference Include="..\Coach.Domain\Coach.Domain.csproj" />
+    <ProjectReference Include="..\Coach.Infrastructure\Coach.Infrastructure.csproj" />
+    <ProjectReference Include="..\Coach.Infrastructure.Garmin\Coach.Infrastructure.Garmin.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

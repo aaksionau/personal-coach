@@ -39,6 +39,19 @@ public class CoachPersonaRegistryTests
         Assert.Equal("Relationships", persona.ShortName);
     }
 
+    [Theory]
+    [InlineData("health", true)]
+    [InlineData("career", false)]
+    [InlineData("relationships", false)]
+    [InlineData("kids", false)]
+    public void IncludesGarminMetrics_IsSetOnlyForTheHealthCoach(string slug, bool expected)
+    {
+        var registry = new CoachPersonaRegistry();
+
+        Assert.True(registry.TryGet(slug, out var persona));
+        Assert.Equal(expected, persona.IncludesGarminMetrics);
+    }
+
     [Fact]
     public void TryGet_ReturnsFalse_ForUnknownSlug()
     {

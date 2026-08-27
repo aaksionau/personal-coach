@@ -7,9 +7,10 @@ namespace Coach.Application.Builders;
 /// <summary>
 /// Assembles the context bundle for a coach call. v1 includes the persona, a recent message
 /// window, the called coach's own goal/reflection state, the user's global values profile, the
-/// other coaches' tracked state (so one coach can account for the other domains), and the user's
-/// upcoming calendar events -- no Garmin data yet. Deliberately separate from the Conversation
-/// Engine so it's testable without a model call.
+/// other coaches' tracked state (so one coach can account for the other domains), the user's
+/// upcoming calendar events, and -- for the Health coach only -- the latest ingested Garmin
+/// daily metrics. Deliberately separate from the Conversation Engine so it's testable without a
+/// model call.
 /// </summary>
 public sealed class CoachContextBuilder(
     IChatMessageStore chatMessageStore,
@@ -17,7 +18,8 @@ public sealed class CoachContextBuilder(
     GoalTrackingService goalTrackingService,
     ReflectionService reflectionService,
     ValuesProfileService valuesProfileService,
-    ICalendarReader calendarReader)
+    ICalendarReader calendarReader,
+    IGarminMetricsStore garminMetricsStore)
 {
     private const int RecentMessageWindow = 20;
     private const int OwnReflectionWindow = 10;
@@ -37,7 +39,12 @@ public sealed class CoachContextBuilder(
         var ownStateTask = BuildTrackedStateAsync(persona, OwnReflectionWindow, cancellationToken);
         var otherStatesTask = BuildOtherCoachStatesAsync(coachSlug, cancellationToken);
         var upcomingEventsTask = calendarReader.GetUpcomingEventsAsync(CoachContext.CalendarLookaheadDays, cancellationToken);
-        await Task.WhenAll(recentMessagesTask, valuesProfileTask, ownStateTask, otherStatesTask, upcomingEventsTask);
+        // Only the Health coach sees Garmin data -- don't touch the table for the other three.
+        var garminMetricsTask = persona.IncludesGarminMetrics
+            ? garminMetricsStore.GetLatestAsync(cancellationToken)
+            : Task.FromResult<GarminMetricsSnapshot?>(null);
+        await Task.WhenAll(
+            recentMessagesTask, valuesProfileTask, ownStateTask, otherStatesTask, upcomingEventsTask, garminMetricsTask);
 
         return new CoachContext(
             persona,
@@ -45,7 +52,8 @@ public sealed class CoachContextBuilder(
             ownStateTask.Result,
             valuesProfileTask.Result,
             otherStatesTask.Result,
-            upcomingEventsTask.Result);
+            upcomingEventsTask.Result,
+            garminMetricsTask.Result);
     }
 
     /// <summary>

@@ -32,7 +32,8 @@ public class CoachContextBuilderTests
             new GoalTrackingService(new FakeGoalStore()),
             new ReflectionService(new FakeReflectionStore()),
             new ValuesProfileService(new FakeValuesProfileStore()),
-            new FakeCalendarReader());
+            new FakeCalendarReader(),
+            new FakeGarminMetricsStore());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -50,7 +51,8 @@ public class CoachContextBuilderTests
             new GoalTrackingService(new FakeGoalStore()),
             new ReflectionService(new FakeReflectionStore()),
             new ValuesProfileService(new FakeValuesProfileStore()),
-            new FakeCalendarReader());
+            new FakeCalendarReader(),
+            new FakeGarminMetricsStore());
 
         await builder.BuildAsync("career", CancellationToken.None);
 
@@ -70,7 +72,8 @@ public class CoachContextBuilderTests
             goalService,
             new ReflectionService(new FakeReflectionStore()),
             new ValuesProfileService(new FakeValuesProfileStore()),
-            new FakeCalendarReader());
+            new FakeCalendarReader(),
+            new FakeGarminMetricsStore());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -89,7 +92,8 @@ public class CoachContextBuilderTests
             new GoalTrackingService(new FakeGoalStore()),
             reflectionService,
             new ValuesProfileService(new FakeValuesProfileStore()),
-            new FakeCalendarReader());
+            new FakeCalendarReader(),
+            new FakeGarminMetricsStore());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -113,7 +117,8 @@ public class CoachContextBuilderTests
             goalService,
             reflectionService,
             new ValuesProfileService(new FakeValuesProfileStore()),
-            new FakeCalendarReader());
+            new FakeCalendarReader(),
+            new FakeGarminMetricsStore());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -138,7 +143,8 @@ public class CoachContextBuilderTests
             new GoalTrackingService(new FakeGoalStore()),
             new ReflectionService(new FakeReflectionStore()),
             valuesService,
-            new FakeCalendarReader());
+            new FakeCalendarReader(),
+            new FakeGarminMetricsStore());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -163,11 +169,59 @@ public class CoachContextBuilderTests
             new GoalTrackingService(new FakeGoalStore()),
             new ReflectionService(new FakeReflectionStore()),
             new ValuesProfileService(new FakeValuesProfileStore()),
-            calendarReader);
+            calendarReader,
+            new FakeGarminMetricsStore());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
         Assert.Equal("Dentist", Assert.Single(context.UpcomingEvents).Title);
         Assert.Equal(CoachContext.CalendarLookaheadDays, calendarReader.LastRequestedWithinDays);
+    }
+
+    [Fact]
+    public async Task BuildAsync_IncludesLatestGarminMetrics_ForTheHealthCoach()
+    {
+        var garminStore = new FakeGarminMetricsStore
+        {
+            SnapshotToReturn = new GarminMetricsSnapshot(
+                new GarminDailyMetric { Date = new DateOnly(2026, 8, 26), Steps = 9000, IngestedAtUtc = DateTimeOffset.UtcNow },
+                []),
+        };
+        var builder = new CoachContextBuilder(
+            new FakeChatMessageStore(),
+            new CoachPersonaRegistry(),
+            new GoalTrackingService(new FakeGoalStore()),
+            new ReflectionService(new FakeReflectionStore()),
+            new ValuesProfileService(new FakeValuesProfileStore()),
+            new FakeCalendarReader(),
+            garminStore);
+
+        var context = await builder.BuildAsync("health", CancellationToken.None);
+
+        Assert.NotNull(context.GarminMetrics);
+        Assert.Equal(9000, context.GarminMetrics!.Metric.Steps);
+    }
+
+    [Fact]
+    public async Task BuildAsync_DoesNotTouchGarmin_ForANonHealthCoach()
+    {
+        var garminStore = new FakeGarminMetricsStore
+        {
+            SnapshotToReturn = new GarminMetricsSnapshot(
+                new GarminDailyMetric { Date = new DateOnly(2026, 8, 26), IngestedAtUtc = DateTimeOffset.UtcNow }, []),
+        };
+        var builder = new CoachContextBuilder(
+            new FakeChatMessageStore(),
+            new CoachPersonaRegistry(),
+            new GoalTrackingService(new FakeGoalStore()),
+            new ReflectionService(new FakeReflectionStore()),
+            new ValuesProfileService(new FakeValuesProfileStore()),
+            new FakeCalendarReader(),
+            garminStore);
+
+        var context = await builder.BuildAsync("career", CancellationToken.None);
+
+        Assert.Null(context.GarminMetrics);
+        Assert.False(garminStore.GetLatestWasCalled);
     }
 }

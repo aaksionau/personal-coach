@@ -22,6 +22,11 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
     // Id is the PK by convention and Content maps to unbounded text, so no OnModelCreating block.
     public DbSet<ValuesProfile> ValuesProfiles => Set<ValuesProfile>();
 
+    // Written by the standalone Garmin ingestion CronJob, read by the Health coach's context.
+    public DbSet<GarminDailyMetric> GarminDailyMetrics => Set<GarminDailyMetric>();
+
+    public DbSet<GarminActivitySummary> GarminActivitySummaries => Set<GarminActivitySummary>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<CoachEntity>(entity =>
@@ -72,6 +77,23 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
             // ChatMessage.Content, so an over-long value can't throw past ModelToolGuard.
             entity.HasOne<CoachEntity>().WithMany().HasForeignKey(r => r.CoachSlug);
             entity.HasIndex(r => new { r.CoachSlug, r.CreatedAtUtc });
+        });
+
+        modelBuilder.Entity<GarminDailyMetric>(entity =>
+        {
+            // One row per calendar day; the ingestion job replaces a day's row to re-ingest it.
+            entity.HasKey(m => m.Date);
+        });
+
+        modelBuilder.Entity<GarminActivitySummary>(entity =>
+        {
+            entity.HasKey(a => a.ActivityId);
+            // ActivityId is Garmin's own id, not a generated key.
+            entity.Property(a => a.ActivityId).ValueGeneratedNever();
+            entity.Property(a => a.Name).HasMaxLength(256);
+            entity.Property(a => a.ActivityType).HasMaxLength(64);
+            entity.HasOne<GarminDailyMetric>().WithMany().HasForeignKey(a => a.Date).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(a => a.Date);
         });
     }
 }
