@@ -132,6 +132,31 @@ public class CoachContextBuilderTests
     }
 
     [Fact]
+    public async Task BuildAllTrackedStatesAsync_ReturnsEveryCoach_OrderedByName()
+    {
+        var goalService = new GoalTrackingService(new FakeGoalStore());
+        await goalService.CreateGoalAsync("career", "Land a staff role", CancellationToken.None);
+        await goalService.CreateGoalAsync("kids", "Read together nightly", CancellationToken.None);
+
+        var builder = new CoachContextBuilder(
+            new FakeChatMessageStore(),
+            new CoachPersonaRegistry(),
+            goalService,
+            new ReflectionService(new FakeReflectionStore()),
+            new ValuesProfileService(new FakeValuesProfileStore()),
+            new FakeCalendarReader(),
+            new FakeGarminMetricsStore());
+
+        var states = await builder.BuildAllTrackedStatesAsync(CancellationToken.None);
+
+        Assert.Equal(
+            new[] { "Career Coach", "Health Coach", "Kids Coach", "Relationships Coach" },
+            states.Select(s => s.CoachName));
+        Assert.Equal("Land a staff role", Assert.Single(states.Single(s => s.CoachName == "Career Coach").Goals).Goal.Title);
+        Assert.Equal("Read together nightly", Assert.Single(states.Single(s => s.CoachName == "Kids Coach").Goals).Goal.Title);
+    }
+
+    [Fact]
     public async Task BuildAsync_IncludesTheCurrentValuesProfile_WithoutInvokingAModel()
     {
         var valuesStore = new FakeValuesProfileStore();

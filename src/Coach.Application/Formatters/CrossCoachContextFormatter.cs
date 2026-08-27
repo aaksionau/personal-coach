@@ -1,6 +1,5 @@
 using System.Text;
 using Coach.Application.Models;
-using Coach.Domain.Entities;
 
 namespace Coach.Application.Formatters;
 
@@ -14,7 +13,7 @@ public static class CrossCoachContextFormatter
 {
     public static string Format(IReadOnlyList<CoachTrackedState> otherCoachStates)
     {
-        var populated = otherCoachStates.Where(s => s.Goals.Count > 0 || s.Reflections.Count > 0).ToList();
+        var populated = CoachTrackedStateFormatter.Populated(otherCoachStates);
         if (populated.Count == 0)
         {
             return "The user's other coaches: nothing tracked yet.";
@@ -24,45 +23,9 @@ public static class CrossCoachContextFormatter
             "What the user's other coaches are working on (for cross-domain awareness -- you cannot act on these):\n");
         foreach (var state in populated)
         {
-            builder.Append('\n').Append(state.CoachName).Append(":\n");
-            AppendGoals(builder, state.Goals);
-            AppendReflections(builder, state.Reflections);
+            CoachTrackedStateFormatter.AppendState(builder, state);
         }
 
         return builder.ToString();
-    }
-
-    private static void AppendGoals(StringBuilder builder, IReadOnlyList<GoalWithActionItems> goals)
-    {
-        if (goals.Count == 0)
-        {
-            return;
-        }
-
-        builder.Append("  Goals:\n");
-        foreach (var (goal, actionItems) in goals)
-        {
-            builder.Append("  - ").Append(goal.Title).Append('\n');
-            foreach (var actionItem in actionItems)
-            {
-                GoalContextFormatter.AppendActionItemLine(builder, actionItem, "    ");
-                builder.Append('\n');
-            }
-        }
-    }
-
-    private static void AppendReflections(StringBuilder builder, IReadOnlyList<Reflection> reflections)
-    {
-        if (reflections.Count == 0)
-        {
-            return;
-        }
-
-        builder.Append("  Recent reflections:\n");
-        foreach (var reflection in reflections)
-        {
-            builder.Append("  - (").Append(reflection.CreatedAtUtc.ToString("yyyy-MM-dd")).Append(") ")
-                .Append(reflection.Content).Append('\n');
-        }
     }
 }

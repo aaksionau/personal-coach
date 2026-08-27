@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<ValuesWizardService>();
         services.AddScoped<CoachContextBuilder>();
         services.AddScoped<CoachConversationEngine>();
+        services.AddScoped<WeeklyDigestService>();
         return services;
     }
 }

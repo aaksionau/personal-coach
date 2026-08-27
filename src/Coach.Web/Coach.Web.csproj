@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Coach.Application\Coach.Application.csproj" />
     <ProjectReference Include="..\Coach.Infrastructure\Coach.Infrastructure.csproj" />
     <ProjectReference Include="..\Coach.Infrastructure.GoogleCalendar\Coach.Infrastructure.GoogleCalendar.csproj" />
+    <ProjectReference Include="..\Coach.Infrastructure.Sms\Coach.Infrastructure.Sms.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -11,6 +12,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Coach.Web.Tests" />
   </ItemGroup>
 
   <PropertyGroup>

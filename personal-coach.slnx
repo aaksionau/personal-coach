@@ -5,13 +5,16 @@
     <Project Path="src/Coach.Infrastructure/Coach.Infrastructure.csproj" />
     <Project Path="src/Coach.Infrastructure.GoogleCalendar/Coach.Infrastructure.GoogleCalendar.csproj" />
     <Project Path="src/Coach.Infrastructure.Garmin/Coach.Infrastructure.Garmin.csproj" />
+    <Project Path="src/Coach.Infrastructure.Sms/Coach.Infrastructure.Sms.csproj" />
     <Project Path="src/Coach.GarminIngestion/Coach.GarminIngestion.csproj" />
     <Project Path="src/Coach.Web/Coach.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Coach.Application.Tests/Coach.Application.Tests.csproj" />
+    <Project Path="tests/Coach.Web.Tests/Coach.Web.Tests.csproj" />
     <Project Path="tests/Coach.Infrastructure.GoogleCalendar.Tests/Coach.Infrastructure.GoogleCalendar.Tests.csproj" />
     <Project Path="tests/Coach.Infrastructure.Garmin.Tests/Coach.Infrastructure.Garmin.Tests.csproj" />
+    <Project Path="tests/Coach.Infrastructure.Sms.Tests/Coach.Infrastructure.Sms.Tests.csproj" />
     <Project Path="tests/Coach.GarminIngestion.Tests/Coach.GarminIngestion.Tests.csproj" />
   </Folder>
 </Solution>
