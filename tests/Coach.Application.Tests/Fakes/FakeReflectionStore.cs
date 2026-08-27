@@ -6,10 +6,9 @@ namespace Coach.Application.Tests.Fakes;
 public sealed class FakeReflectionStore : IReflectionStore
 {
     private readonly List<Reflection> _reflections = [];
+    private readonly List<string> _requestedCoachSlugs = [];
 
     public IReadOnlyList<Reflection> Added => _reflections;
-
-    private readonly List<string> _requestedCoachSlugs = [];
 
     /// <summary>Every coach slug <see cref="GetRecentAsync"/> has been called with, in call order -- the builder now reads several coaches' reflections per turn.</summary>
     public IReadOnlyList<string> RequestedCoachSlugs => _requestedCoachSlugs;

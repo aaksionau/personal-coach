@@ -27,11 +27,7 @@ public sealed class CoachConversationEngine(
         var userChatMessage = DomainChatMessage.Create(coachSlug, ChatMessageRole.User, userMessage);
         await chatMessageStore.AddAsync(userChatMessage, cancellationToken);
 
-        var systemPrompt = context.Persona.SystemPrompt
-            + "\n\n" + ValuesContextFormatter.Format(context.ValuesProfile)
-            + "\n\n" + GoalContextFormatter.Format(context.Goals)
-            + "\n\n" + ReflectionContextFormatter.Format(context.Reflections)
-            + "\n\n" + CrossCoachContextFormatter.Format(context.CrossCoachSnapshots);
+        var systemPrompt = CoachSystemPromptComposer.Compose(context);
 
         var messages = new List<ChatMessage>(context.RecentMessages.Count + 2) { new(ChatRole.System, systemPrompt) };
         messages.AddRange(context.RecentMessages.Select(ToAiChatMessage));

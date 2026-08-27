@@ -1,7 +1,6 @@
 using System.Text;
 using Coach.Application.Models;
 using Coach.Domain.Entities;
-using Coach.Domain.Enums;
 
 namespace Coach.Application.Services;
 
@@ -46,14 +45,12 @@ public static class CrossCoachContextFormatter
         builder.Append("  Goals:\n");
         foreach (var (goal, actionItems) in goals)
         {
-            var openCount = actionItems.Count(a => a.Status != ActionItemStatus.Done);
-            var openNote = openCount switch
+            builder.Append("  - ").Append(goal.Title).Append('\n');
+            foreach (var actionItem in actionItems)
             {
-                0 => string.Empty,
-                1 => " (1 open action item)",
-                _ => $" ({openCount} open action items)",
-            };
-            builder.Append("  - ").Append(goal.Title).Append(openNote).Append('\n');
+                GoalContextFormatter.AppendActionItemLine(builder, actionItem, "    ");
+                builder.Append('\n');
+            }
         }
     }
 
@@ -67,8 +64,7 @@ public static class CrossCoachContextFormatter
         builder.Append("  Recent reflections:\n");
         foreach (var reflection in reflections)
         {
-            builder.Append("  - (").Append(reflection.CreatedAtUtc.ToString("yyyy-MM-dd")).Append(") ")
-                .Append(reflection.Content).Append('\n');
+            ReflectionContextFormatter.AppendReflectionLine(builder, reflection, "  ");
         }
     }
 }

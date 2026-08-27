@@ -1,5 +1,6 @@
 using System.Text;
 using Coach.Application.Models;
+using Coach.Domain.Entities;
 using Coach.Domain.Enums;
 
 namespace Coach.Application.Services;
@@ -30,13 +31,23 @@ public static class GoalContextFormatter
 
             foreach (var actionItem in actionItems)
             {
-                var box = actionItem.Status == ActionItemStatus.Done ? "[x]" : "[ ]";
-                var due = actionItem.DueDate is { } dueDate ? $" (due {dueDate:yyyy-MM-dd})" : string.Empty;
-                builder.Append("  ").Append(box).Append(' ').Append(actionItem.Description).Append(due)
-                    .Append(" (action item id: ").Append(actionItem.Id).Append(")\n");
+                AppendActionItemLine(builder, actionItem, "  ");
+                builder.Append(" (action item id: ").Append(actionItem.Id).Append(")\n");
             }
         }
 
         return builder.ToString();
+    }
+
+    /// <summary>
+    /// Writes the id-free part of an action-item line -- checkbox, description, and due date -- at
+    /// <paramref name="indent"/>, with no trailing newline. Shared with
+    /// <see cref="CrossCoachContextFormatter"/>, which renders action items without ids.
+    /// </summary>
+    internal static void AppendActionItemLine(StringBuilder builder, ActionItem actionItem, string indent)
+    {
+        var box = actionItem.Status == ActionItemStatus.Done ? "[x]" : "[ ]";
+        var due = actionItem.DueDate is { } dueDate ? $" (due {dueDate:yyyy-MM-dd})" : string.Empty;
+        builder.Append(indent).Append(box).Append(' ').Append(actionItem.Description).Append(due);
     }
 }

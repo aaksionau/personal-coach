@@ -22,10 +22,10 @@ public class CrossCoachContextFormatterTests
     }
 
     [Fact]
-    public void Format_SummarisesEachOtherCoachsGoalsAndReflections_WithoutIds()
+    public void Format_SummarisesEachOtherCoachsGoalsActionItemsAndReflections_WithoutIds()
     {
         var healthGoal = Goal.Create("health", "Sleep 8 hours");
-        var openItem = ActionItem.Create(healthGoal.Id, "No screens after 22:00", null);
+        var openItem = ActionItem.Create(healthGoal.Id, "No screens after 22:00", new DateOnly(2026, 9, 1));
         var doneItem = ActionItem.Create(healthGoal.Id, "Buy blackout curtains", null);
         doneItem.Status = ActionItemStatus.Done;
         var healthReflection = new Reflection
@@ -48,9 +48,12 @@ public class CrossCoachContextFormatterTests
         var result = CrossCoachContextFormatter.Format(snapshots);
 
         Assert.Contains("Health Coach:", result);
-        Assert.Contains("  - Sleep 8 hours (1 open action item)", result);
+        Assert.Contains("  - Sleep 8 hours", result);
+        Assert.Contains("    [ ] No screens after 22:00 (due 2026-09-01)", result);
+        Assert.Contains("    [x] Buy blackout curtains", result);
         Assert.Contains("  - (2026-08-22) I skip workouts when work runs late.", result);
         Assert.DoesNotContain(healthGoal.Id.ToString(), result);
+        Assert.DoesNotContain(openItem.Id.ToString(), result);
         Assert.DoesNotContain("Kids Coach", result);
     }
 
