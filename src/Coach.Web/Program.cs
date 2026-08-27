@@ -1,6 +1,8 @@
 using Coach.Application;
 using Coach.Infrastructure;
 using Coach.Infrastructure.GoogleCalendar;
+using Coach.Infrastructure.Sms;
+using Coach.Web.BackgroundServices;
 using Coach.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,11 @@ builder.Services.AddRazorComponents()
 builder.Services.AddCoachApplication();
 builder.Services.AddCoachInfrastructure(builder.Configuration);
 builder.Services.AddCoachGoogleCalendar(builder.Configuration);
+builder.Services.AddCoachSms(builder.Configuration);
+
+// The weekly consolidated check-in digest: generated across all four coaches and texted out.
+builder.Services.Configure<DigestOptions>(builder.Configuration.GetSection(DigestOptions.SectionName));
+builder.Services.AddHostedService<WeeklyDigestScheduler>();
 
 var app = builder.Build();
 
