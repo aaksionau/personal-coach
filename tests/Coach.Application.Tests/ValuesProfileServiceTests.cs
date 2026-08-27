@@ -1,5 +1,6 @@
 using Coach.Application.Services;
 using Coach.Application.Tests.Fakes;
+using Coach.Domain.Entities;
 
 namespace Coach.Application.Tests;
 
@@ -33,6 +34,7 @@ public class ValuesProfileServiceTests
         var saved = await service.SaveProfileAsync("  Family first, then craft.  ", CancellationToken.None);
 
         Assert.Equal("Family first, then craft.", saved.Content);
+        Assert.Equal(ValuesProfile.SingletonId, saved.Id);
         Assert.Equal(1, store.AddCount);
         Assert.Equal(0, store.UpdateCount);
         Assert.Equal(saved.Content, (await service.GetProfileAsync(CancellationToken.None))!.Content);

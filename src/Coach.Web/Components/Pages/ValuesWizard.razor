@@ -9,10 +9,9 @@
 
 <div class="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 sm:px-6">
     <div class="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
-        @for (var i = 0; i < _messages.Count; i++)
+        @foreach (var message in _messages)
         {
-            var message = _messages[i];
-            <ChatBubble IsUser="message.IsUser" Content="message.Content" @key="i" />
+            <ChatBubble IsUser="message.IsUser" Content="message.Content" @key="message.Id" />
         }
         @if (_pendingUserMessage is not null)
         {
@@ -24,7 +23,7 @@
     {
         <div class="mb-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
             Your values profile is saved.
-            <a href="/values" class="font-medium text-slate-900 underline">View or edit it</a>.
+            <a href="values" class="font-medium text-slate-900 underline">View or edit it</a>.
         </div>
     }
 

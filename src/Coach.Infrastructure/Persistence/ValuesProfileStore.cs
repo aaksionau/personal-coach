@@ -9,7 +9,9 @@ public sealed class ValuesProfileStore(IDbContextFactory<CoachDbContext> dbConte
     public async Task<ValuesProfile?> GetAsync(CancellationToken cancellationToken)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await dbContext.ValuesProfiles.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        return await dbContext.ValuesProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == ValuesProfile.SingletonId, cancellationToken);
     }
 
     public async Task AddAsync(ValuesProfile profile, CancellationToken cancellationToken)

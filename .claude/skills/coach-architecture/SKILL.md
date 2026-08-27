@@ -29,7 +29,7 @@ Config-driven infra (`AzureAiOptions`, the Postgres connection string) falls bac
 - Migrations via `dotnet ef migrations add <Name> --project src/Coach.Infrastructure --startup-project src/Coach.Web`.
 - Seed data (e.g. the `Coach` rows) is derived from a single source of truth in code (`CoachPersonaRegistry.GetAll()`) rather than duplicated into `HasData(...)` literals.
 - Entity aliasing: when a type name collides with a namespace/BCL type (`Coach` the entity vs. the app name), alias the `using` (`using CoachEntity = Coach.Domain.Entities.Coach;`) rather than renaming the entity.
-- Most entities carry a flat `CoachSlug` FK. `ValuesProfile` is the exception — it's a single global row (no `CoachSlug`, no FK), read fresh per turn by `CoachContextBuilder` and injected into every persona's context. Its store (`IValuesProfileStore`) is a get/add/update trio; the "one row, upserted" invariant lives in `ValuesProfileService.SaveProfileAsync`, shared by the guided wizard tool and the direct-edit page.
+- Most entities carry a flat `CoachSlug` FK. `ValuesProfile` is the exception — it's a single global row (no `CoachSlug`, no FK), read fresh per turn by `CoachContextBuilder` and injected into every persona's context. It uses a fixed primary key (`ValuesProfile.SingletonId`) so "one row only" is a DB-enforced constraint, not just a convention; `ValuesProfileService.SaveProfileAsync` is the one upsert path, shared by the guided wizard tool and the direct-edit page.
 
 ## Testing conventions
 
