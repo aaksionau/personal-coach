@@ -66,6 +66,7 @@ scripts/
 Requires the .NET 10 SDK.
 
 ```powershell
+docker compose up -d              # local-dev Postgres (see docker-compose.yml)
 ./scripts/build-web-assets.ps1   # one-time, until wwwroot's generated assets change
 dotnet run --project src/Coach.Web
 ```
@@ -73,7 +74,15 @@ dotnet run --project src/Coach.Web
 Configure `ConnectionStrings:CoachDb` and the `AzureAi:Endpoint` / `AzureAi:ApiKey` /
 `AzureAi:DeploymentName` settings (e.g. via `dotnet user-secrets` or the matching
 `ConnectionStrings__CoachDb` / `AzureAi__*` environment variables) for the chat page
-to actually reach Postgres and the model. Without them, the app still starts and the
+to actually reach Postgres and the model. To match the bundled `docker compose`
+Postgres:
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:CoachDb" `
+  "Host=localhost;Port=5442;Database=coach;Username=postgres;Password=coachdev" `
+  --project src/Coach.Web
+```
+ Without them, the app still starts and the
 chat page surfaces the resulting failure inline rather than crashing.
 
 Optionally configure `GoogleCalendar:ClientId` / `GoogleCalendar:ClientSecret` /

@@ -1,0 +1,36 @@
+# Local-dev Postgres for Coach.Web (and Coach.GarminIngestion), which share the
+# CoachDb connection string. Not used in production -- the home k3s cluster runs
+# its own Postgres (see the sibling home-server repo).
+#
+#   docker compose up -d
+#
+# Then point the app at it:
+#   dotnet user-secrets set "ConnectionStrings:CoachDb" \
+#     "Host=localhost;Port=5442;Database=coach;Username=postgres;Password=coachdev" \
+#     --project src/Coach.Web
+#
+# Host port is 5442 (not the default 5432) to avoid clashing with any other local
+# Postgres; the container still listens on 5432 internally.
+#
+# EF Core migrations apply automatically on `dotnet run`.
+
+services:
+  db:
+    image: postgres:17
+    container_name: coach-db
+    environment:
+      POSTGRES_DB: coach
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: coachdev
+    ports:
+      - "5442:5432"
+    volumes:
+      - coach-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d coach"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  coach-db-data:
