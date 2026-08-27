@@ -8,7 +8,7 @@
 @inject CoachConversationEngine ConversationEngine
 @inject IChatMessageStore ChatMessageStore
 
-<PageTitle>Coach - @(Persona?.ShortName) Chat</PageTitle>
+<PageTitle>Coach - @CoachName Chat</PageTitle>
 
 <div class="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 sm:px-6">
     <div class="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
@@ -20,7 +20,7 @@
         {
             <div class="flex h-full flex-col items-center justify-center py-16 text-center">
                 <p class="text-lg font-medium text-slate-700">Say hello to get started</p>
-                <p class="mt-1 text-sm text-slate-500">Your @(Persona?.ShortName) coach is ready when you are.</p>
+                <p class="mt-1 text-sm text-slate-500">Your @CoachName coach is ready when you are.</p>
             </div>
         }
         else
@@ -53,7 +53,7 @@
             class="min-w-0 flex-1 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm shadow-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
             @bind="_draft"
             @bind:event="oninput"
-            placeholder="Message your @(Persona?.ShortName) coach..."
+            placeholder="Message your @CoachName coach..."
             disabled="@_busy.Busy" />
         <button
             type="submit"

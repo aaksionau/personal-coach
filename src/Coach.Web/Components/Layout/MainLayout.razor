@@ -73,8 +73,12 @@
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        var previous = _persona;
         ResolvePersona();
-        StateHasChanged();
+        if (!ReferenceEquals(previous, _persona))
+        {
+            StateHasChanged();
+        }
     }
 
     // MainLayout isn't a routed component, so it reads the active coach from the URL rather than a
@@ -83,7 +87,7 @@
     // hides the pill and the nav.
     private void ResolvePersona()
     {
-        var firstSegment = new Uri(Nav.Uri).AbsolutePath.Trim('/').Split('/', 2)[0];
+        var firstSegment = Nav.ToBaseRelativePath(Nav.Uri).Split('/')[0].Split('?')[0];
         _persona = Registry.TryGet(firstSegment, out var persona) ? persona : null;
     }
 

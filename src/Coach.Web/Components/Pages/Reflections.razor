@@ -5,13 +5,13 @@
 @using Coach.Domain.Entities
 @inject ReflectionService ReflectionService
 
-<PageTitle>Coach - @(Persona?.ShortName) Reflections</PageTitle>
+<PageTitle>Coach - @CoachName Reflections</PageTitle>
 
 <div class="min-h-0 flex-1 overflow-y-auto">
     <div class="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-        <h1 class="text-xl font-semibold text-slate-900">@(Persona?.ShortName) Reflections</h1>
+        <h1 class="text-xl font-semibold text-slate-900">@CoachName Reflections</h1>
         <p class="mt-1 text-sm text-slate-500">
-            Insights and themes your @(Persona?.ShortName) coach has noted from your check-ins over time.
+            Insights and themes your @CoachName coach has noted from your check-ins over time.
             New reflections are captured in chat &mdash; this is the record.
         </p>
 

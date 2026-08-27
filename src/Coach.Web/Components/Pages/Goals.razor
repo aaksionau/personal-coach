@@ -7,11 +7,11 @@
 @using Coach.Domain.Enums
 @inject GoalTrackingService GoalTrackingService
 
-<PageTitle>Coach - @(Persona?.ShortName) Goals</PageTitle>
+<PageTitle>Coach - @CoachName Goals</PageTitle>
 
 <div class="min-h-0 flex-1 overflow-y-auto">
     <div class="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-        <h1 class="text-xl font-semibold text-slate-900">@(Persona?.ShortName) Goals</h1>
+        <h1 class="text-xl font-semibold text-slate-900">@CoachName Goals</h1>
         <p class="mt-1 text-sm text-slate-500">Track what you're working toward and the steps to get there.</p>
 
         @if (_busy.Error is not null)
