@@ -28,12 +28,14 @@ public sealed class DueDateNudgeStore(IDbContextFactory<CoachDbContext> dbContex
             {
                 goal.CoachSlug,
                 goal.Title,
-                ActionItem = actionItem,
+                actionItem.Id,
+                actionItem.Description,
+                actionItem.DueDate,
                 PriorNudgeCount = dbContext.DueDateNudges.Count(n => n.ActionItemId == actionItem.Id),
             }).ToListAsync(cancellationToken);
 
         return rows
-            .Select(r => new PendingNudge(r.CoachSlug, r.Title, r.ActionItem, r.PriorNudgeCount))
+            .Select(r => new PendingNudge(r.CoachSlug, r.Title, r.Id, r.Description, r.DueDate!.Value, r.PriorNudgeCount))
             .ToList();
     }
 

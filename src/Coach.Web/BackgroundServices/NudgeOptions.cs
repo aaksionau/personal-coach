@@ -6,18 +6,9 @@ namespace Coach.Web.BackgroundServices;
 /// the SMS credentials it sends through live in the separate <c>"Sms"</c> section, shared with the
 /// weekly digest. Defaults check daily at 08:00 US Central, nudging items due within four days.
 /// </summary>
-public sealed class NudgeOptions
+public sealed class NudgeOptions : ScheduleOptions
 {
     public const string SectionName = "Nudge";
-
-    /// <summary>Set false to keep the nudge scheduler dormant (e.g. locally, or before SMS is configured).</summary>
-    public bool Enabled { get; init; } = true;
-
-    /// <summary>Local time of day to run the daily check, in <see cref="TimeZoneId"/>.</summary>
-    public TimeSpan TimeOfDay { get; init; } = new(8, 0, 0);
-
-    /// <summary>IANA time zone id the schedule is expressed in. Falls back to UTC if unrecognised.</summary>
-    public string TimeZoneId { get; init; } = "America/Chicago";
 
     /// <summary>Nudge an open action item once its due date is within this many days.</summary>
     public int LeadTimeDays { get; init; } = 4;

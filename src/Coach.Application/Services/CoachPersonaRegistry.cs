@@ -66,6 +66,13 @@ public sealed class CoachPersonaRegistry
     public bool TryGet(string slug, [MaybeNullWhen(false)] out CoachPersona persona) =>
         Personas.TryGetValue(slug, out persona);
 
+    /// <summary>The persona for <paramref name="slug"/>; throws if none is registered. For callers
+    /// that treat an unknown slug as a bug rather than a branch to handle.</summary>
+    public CoachPersona Get(string slug) =>
+        Personas.TryGetValue(slug, out var persona)
+            ? persona
+            : throw new ArgumentException($"No coach persona registered for slug '{slug}'.", nameof(slug));
+
     /// <summary>All registered personas -- the single source of truth for seeding the Coach schema.</summary>
     public IReadOnlyCollection<CoachPersona> GetAll() => Personas.Values;
 }

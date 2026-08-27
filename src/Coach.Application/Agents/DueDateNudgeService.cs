@@ -2,7 +2,6 @@ using Coach.Application.Formatters;
 using Coach.Application.Models;
 using Coach.Application.Services;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 
 namespace Coach.Application.Agents;
 
@@ -21,22 +20,12 @@ public sealed class DueDateNudgeService(
     /// <param name="today">The local calendar day the run is for -- used to phrase how close the due date is.</param>
     public async Task<string> GenerateAsync(PendingNudge pending, DateOnly today, CancellationToken cancellationToken)
     {
-        if (!personaRegistry.TryGet(pending.CoachSlug, out var persona))
-        {
-            throw new InvalidOperationException($"No coach persona registered for slug '{pending.CoachSlug}'.");
-        }
-
+        var persona = personaRegistry.Get(pending.CoachSlug);
         var valuesProfile = await valuesProfileService.GetProfileAsync(cancellationToken);
 
         var systemPrompt = DueDateNudgePromptComposer.Compose(persona, pending, today, valuesProfile);
 
-        var messages = new List<ChatMessage>
-        {
-            new(ChatRole.System, systemPrompt),
-            new(ChatRole.User, "Write the nudge text for this action item."),
-        };
-
-        var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
-        return response.Text;
+        return await agent.RunSingleTurnAsync(
+            systemPrompt, "Write the nudge text for this action item.", cancellationToken);
     }
 }

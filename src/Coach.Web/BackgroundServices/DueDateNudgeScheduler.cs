@@ -7,121 +7,76 @@ using Microsoft.Extensions.Options;
 namespace Coach.Web.BackgroundServices;
 
 /// <summary>
-/// The ad-hoc due-date nudge trigger of the Check-in Scheduler: once a day at the configured local
-/// time it asks <see cref="IDueDateNudgeStore"/> for open action items whose due date is close (or
-/// overdue), has <see cref="DueDateNudgeService"/> write a short model nudge grounded in each one,
-/// and sends it through the same <see cref="ISmsNotifier"/> the weekly digest uses. Thin
-/// orchestration over already-tested pieces (the next-fire arithmetic lives in
-/// <see cref="CheckInSchedule"/>, which is tested; the delay loop and model call carry no tests).
-/// A failed item is logged and left unrecorded so it retries tomorrow; a failed run is logged and
-/// the loop simply waits for the next day rather than crashing the app.
+/// The ad-hoc due-date trigger of the Check-in Scheduler: once a day at the configured local time it
+/// asks <see cref="IDueDateNudgeStore"/> for open action items whose due date is close (or overdue),
+/// has <see cref="DueDateNudgeService"/> write a short model nudge grounded in each one, and sends it
+/// through the same <see cref="ISmsNotifier"/> the weekly digest uses. Each item's generate + send +
+/// record is wrapped so one model or SMS failure doesn't block the rest of the run; a failed item is
+/// left unrecorded so it resurfaces tomorrow. The delay loop and failed-run posture live in
+/// <see cref="CheckInScheduler{TOptions}"/>.
 /// </summary>
 internal sealed class DueDateNudgeScheduler(
     IServiceScopeFactory scopeFactory,
     IOptions<NudgeOptions> options,
-    ILogger<DueDateNudgeScheduler> logger) : BackgroundService
+    ILogger<DueDateNudgeScheduler> logger)
+    : CheckInScheduler<NudgeOptions>(scopeFactory, options, logger)
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override string ConfigSectionName => NudgeOptions.SectionName;
+
+    protected override string TriggerName => "due-date nudge";
+
+    protected override DateTimeOffset NextRun(DateTimeOffset nowUtc, TimeZoneInfo timeZone) =>
+        CheckInSchedule.NextDailyOccurrenceUtc(nowUtc, timeZone, Settings.TimeOfDay);
+
+    protected override async Task RunAsync(IServiceScope scope, TimeZoneInfo timeZone, CancellationToken cancellationToken)
     {
-        var settings = options.Value;
-        if (!settings.Enabled)
+        var nudgeStore = scope.ServiceProvider.GetRequiredService<IDueDateNudgeStore>();
+        var nudgeService = scope.ServiceProvider.GetRequiredService<DueDateNudgeService>();
+        var smsNotifier = scope.ServiceProvider.GetRequiredService<ISmsNotifier>();
+
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, timeZone).DateTime);
+        var pending = await nudgeStore.GetPendingNudgesAsync(
+            today, Settings.LeadTimeDays, Settings.StopAfterOverdueDays, cancellationToken);
+
+        if (pending.Count == 0)
         {
-            logger.LogInformation("Due-date nudge scheduler is disabled (Nudge:Enabled = false).");
+            Logger.LogInformation("No action items due a nudge today.");
             return;
         }
 
-        var timeZone = CheckInSchedule.ResolveTimeZone(
-            settings.TimeZoneId,
-            id => logger.LogWarning("Nudge:TimeZoneId '{TimeZoneId}' not found; scheduling in UTC instead.", id));
-
-        while (!stoppingToken.IsCancellationRequested)
+        var sent = 0;
+        foreach (var item in pending)
         {
-            var now = DateTimeOffset.UtcNow;
-            var nextRun = CheckInSchedule.NextDailyOccurrenceUtc(now, timeZone, settings.TimeOfDay);
-            logger.LogInformation("Next due-date nudge check scheduled for {NextRun:u}.", nextRun);
+            if (await TrySendNudgeAsync(item))
+            {
+                sent++;
+            }
+        }
 
+        Logger.LogInformation("Sent {Sent} of {Total} due-date nudge(s).", sent, pending.Count);
+
+        async Task<bool> TrySendNudgeAsync(PendingNudge item)
+        {
             try
             {
-                await Task.Delay(nextRun - now, stoppingToken);
+                var text = await nudgeService.GenerateAsync(item, today, cancellationToken);
+                await smsNotifier.SendAsync(text, cancellationToken);
+                await nudgeStore.RecordNudgeSentAsync(
+                    DueDateNudge.Create(item.ActionItemId, today, item.DueDate), cancellationToken);
+                Logger.LogInformation(
+                    "Sent due-date nudge for action item {ActionItemId} ({Length} chars).", item.ActionItemId, text.Length);
+                return true;
             }
             catch (OperationCanceledException)
             {
-                break;
+                throw;
             }
-
-            await RunNudgesAsync(settings, timeZone, stoppingToken);
-        }
-    }
-
-    private async Task RunNudgesAsync(NudgeOptions settings, TimeZoneInfo timeZone, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var nudgeStore = scope.ServiceProvider.GetRequiredService<IDueDateNudgeStore>();
-            var nudgeService = scope.ServiceProvider.GetRequiredService<DueDateNudgeService>();
-            var smsNotifier = scope.ServiceProvider.GetRequiredService<ISmsNotifier>();
-
-            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, timeZone).DateTime);
-            var pending = await nudgeStore.GetPendingNudgesAsync(
-                today, settings.LeadTimeDays, settings.StopAfterOverdueDays, cancellationToken);
-
-            if (pending.Count == 0)
+            catch (Exception ex)
             {
-                logger.LogInformation("No action items due a nudge today.");
-                return;
+                // Left unrecorded on purpose: the item resurfaces in tomorrow's run.
+                Logger.LogError(ex, "Failed to send due-date nudge for action item {ActionItemId}.", item.ActionItemId);
+                return false;
             }
-
-            var sent = 0;
-            foreach (var item in pending)
-            {
-                if (await TrySendNudgeAsync(item, today, nudgeService, smsNotifier, nudgeStore, cancellationToken))
-                {
-                    sent++;
-                }
-            }
-
-            logger.LogInformation("Sent {Sent} of {Total} due-date nudge(s).", sent, pending.Count);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Due-date nudge run failed; will retry at the next scheduled time.");
-        }
-    }
-
-    private async Task<bool> TrySendNudgeAsync(
-        PendingNudge item,
-        DateOnly today,
-        DueDateNudgeService nudgeService,
-        ISmsNotifier smsNotifier,
-        IDueDateNudgeStore nudgeStore,
-        CancellationToken cancellationToken)
-    {
-        var actionItem = item.ActionItem;
-        try
-        {
-            var text = await nudgeService.GenerateAsync(item, today, cancellationToken);
-            await smsNotifier.SendAsync(text, cancellationToken);
-            await nudgeStore.RecordNudgeSentAsync(
-                DueDateNudge.Create(actionItem.Id, today, actionItem.DueDate!.Value), cancellationToken);
-            logger.LogInformation(
-                "Sent due-date nudge for action item {ActionItemId} ({Length} chars).",
-                actionItem.Id, text.Length);
-            return true;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            // Left unrecorded on purpose: the item resurfaces in tomorrow's run.
-            logger.LogError(ex, "Failed to send due-date nudge for action item {ActionItemId}.", actionItem.Id);
-            return false;
         }
     }
 }

@@ -4,7 +4,6 @@ using Coach.Application.Interfaces;
 using Coach.Application.Models;
 using Coach.Application.Services;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 
 namespace Coach.Application.Agents;
 
@@ -32,13 +31,6 @@ public sealed class WeeklyDigestService(
         var systemPrompt = WeeklyDigestPromptComposer.Compose(
             coachStatesTask.Result, upcomingEventsTask.Result, valuesProfileTask.Result);
 
-        var messages = new List<ChatMessage>
-        {
-            new(ChatRole.System, systemPrompt),
-            new(ChatRole.User, "Write this week's check-in text."),
-        };
-
-        var response = await agent.RunAsync(messages, cancellationToken: cancellationToken);
-        return response.Text;
+        return await agent.RunSingleTurnAsync(systemPrompt, "Write this week's check-in text.", cancellationToken);
     }
 }

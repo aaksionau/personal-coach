@@ -44,21 +44,15 @@ public static class DueDateNudgePromptComposer
 
         builder.Append("The action item to nudge about:\n");
         builder.Append("- Goal: ").Append(pending.GoalTitle).Append('\n');
-        builder.Append("- Action item: ").Append(pending.ActionItem.Description).Append('\n');
-        builder.Append("- ").Append(DueDescription(pending.ActionItem.DueDate, today)).Append('\n');
+        builder.Append("- Action item: ").Append(pending.ActionItemDescription).Append('\n');
+        builder.Append("- ").Append(DueDescription(pending.DueDate, today)).Append('\n');
         builder.Append("- ").Append(NudgeHistoryDescription(pending.PriorNudgeCount)).Append('\n');
 
         return builder.ToString();
     }
 
-    private static string DueDescription(DateOnly? dueDate, DateOnly today)
+    private static string DueDescription(DateOnly due, DateOnly today)
     {
-        if (dueDate is not { } due)
-        {
-            // The scheduler only ever passes dated items; this keeps the formatter total.
-            return "Due date: none.";
-        }
-
         var days = due.DayNumber - today.DayNumber;
         var iso = due.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         return days switch

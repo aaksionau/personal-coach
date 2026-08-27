@@ -16,12 +16,8 @@ public class DueDateNudgePromptComposerTests
     }
 
     private static PendingNudge Pending(
-        string goalTitle, string description, DateOnly dueDate, int priorNudgeCount = 0)
-    {
-        var goal = Goal.Create("career", goalTitle);
-        var item = ActionItem.Create(goal.Id, description, dueDate);
-        return new PendingNudge("career", goalTitle, item, priorNudgeCount);
-    }
+        string goalTitle, string description, DateOnly dueDate, int priorNudgeCount = 0) =>
+        new("career", goalTitle, Guid.NewGuid(), description, dueDate, priorNudgeCount);
 
     [Fact]
     public void Compose_GroundsTheMessageInTheSpecificGoalAndActionItem()
