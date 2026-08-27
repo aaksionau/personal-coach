@@ -39,7 +39,14 @@ public static class DependencyInjection
             var apiKey = OrDefault(options.ApiKey, "unconfigured");
             var deploymentName = OrDefault(options.DeploymentName, "unconfigured");
             var chatClient = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey)).GetChatClient(deploymentName);
-            return (AIAgent)chatClient.AsIChatClient().AsAIAgent(name: "PersonalCoach");
+            // A turn's independent Goal Tracking tool calls (e.g. create a goal plus two action
+            // items) don't depend on each other's results, so let the framework run them
+            // concurrently instead of its serial-by-default invocation.
+            var functionInvokingChatClient = chatClient.AsIChatClient()
+                .AsBuilder()
+                .UseFunctionInvocation(configure: c => c.AllowConcurrentInvocation = true)
+                .Build();
+            return (AIAgent)functionInvokingChatClient.AsAIAgent(name: "PersonalCoach");
         });
 
         return services;
