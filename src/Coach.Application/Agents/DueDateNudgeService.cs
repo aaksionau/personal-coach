@@ -28,13 +28,7 @@ public sealed class DueDateNudgeService(
 
         var valuesProfile = await valuesProfileService.GetProfileAsync(cancellationToken);
 
-        var systemPrompt = DueDateNudgePromptComposer.Compose(
-            persona,
-            pending.GoalTitle,
-            pending.ActionItem,
-            today,
-            valuesProfile,
-            pending.PriorNudgeCount);
+        var systemPrompt = DueDateNudgePromptComposer.Compose(persona, pending, today, valuesProfile);
 
         var messages = new List<ChatMessage>
         {

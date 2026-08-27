@@ -33,11 +33,9 @@ public static class DueDateNudgePromptComposer
 
     public static string Compose(
         CoachPersona persona,
-        string goalTitle,
-        ActionItem actionItem,
+        PendingNudge pending,
         DateOnly today,
-        ValuesProfile? valuesProfile,
-        int priorNudgeCount)
+        ValuesProfile? valuesProfile)
     {
         var builder = new StringBuilder(persona.SystemPrompt).Append("\n\n");
         builder.Append("Your coaching tone: ").Append(persona.Tone).Append("\n\n");
@@ -45,10 +43,10 @@ public static class DueDateNudgePromptComposer
         builder.Append(ValuesContextFormatter.Format(valuesProfile)).Append("\n\n");
 
         builder.Append("The action item to nudge about:\n");
-        builder.Append("- Goal: ").Append(goalTitle).Append('\n');
-        builder.Append("- Action item: ").Append(actionItem.Description).Append('\n');
-        builder.Append("- ").Append(DueDescription(actionItem.DueDate, today)).Append('\n');
-        builder.Append("- ").Append(NudgeHistoryDescription(priorNudgeCount)).Append('\n');
+        builder.Append("- Goal: ").Append(pending.GoalTitle).Append('\n');
+        builder.Append("- Action item: ").Append(pending.ActionItem.Description).Append('\n');
+        builder.Append("- ").Append(DueDescription(pending.ActionItem.DueDate, today)).Append('\n');
+        builder.Append("- ").Append(NudgeHistoryDescription(pending.PriorNudgeCount)).Append('\n');
 
         return builder.ToString();
     }

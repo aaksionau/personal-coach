@@ -15,14 +15,21 @@ public class DueDateNudgePromptComposerTests
         return persona!;
     }
 
+    private static PendingNudge Pending(
+        string goalTitle, string description, DateOnly dueDate, int priorNudgeCount = 0)
+    {
+        var goal = Goal.Create("career", goalTitle);
+        var item = ActionItem.Create(goal.Id, description, dueDate);
+        return new PendingNudge("career", goalTitle, item, priorNudgeCount);
+    }
+
     [Fact]
     public void Compose_GroundsTheMessageInTheSpecificGoalAndActionItem()
     {
-        var goal = Goal.Create("career", "Land a staff role");
-        var item = ActionItem.Create(goal.Id, "Send the recruiter my updated resume", new DateOnly(2026, 9, 1));
+        var pending = Pending("Land a staff role", "Send the recruiter my updated resume", new DateOnly(2026, 9, 1));
 
         var prompt = DueDateNudgePromptComposer.Compose(
-            Career(), "Land a staff role", item, new DateOnly(2026, 8, 30), valuesProfile: null, priorNudgeCount: 0);
+            Career(), pending, new DateOnly(2026, 8, 30), valuesProfile: null);
 
         Assert.Contains("Land a staff role", prompt);
         Assert.Contains("Send the recruiter my updated resume", prompt);
@@ -32,11 +39,9 @@ public class DueDateNudgePromptComposerTests
     [Fact]
     public void Compose_CarriesThePersonaVoice()
     {
-        var goal = Goal.Create("career", "x");
-        var item = ActionItem.Create(goal.Id, "x", new DateOnly(2026, 9, 1));
+        var pending = Pending("x", "x", new DateOnly(2026, 9, 1));
 
-        var prompt = DueDateNudgePromptComposer.Compose(
-            Career(), "x", item, new DateOnly(2026, 8, 30), null, 0);
+        var prompt = DueDateNudgePromptComposer.Compose(Career(), pending, new DateOnly(2026, 8, 30), null);
 
         Assert.Contains(Career().SystemPrompt, prompt);
         Assert.Contains(Career().Tone, prompt);
@@ -45,10 +50,9 @@ public class DueDateNudgePromptComposerTests
     [Fact]
     public void Compose_TellsTheModelToStayOnOneItemAndNotAskForATextReply()
     {
-        var goal = Goal.Create("career", "x");
-        var item = ActionItem.Create(goal.Id, "x", new DateOnly(2026, 9, 1));
+        var pending = Pending("x", "x", new DateOnly(2026, 9, 1));
 
-        var prompt = DueDateNudgePromptComposer.Compose(Career(), "x", item, new DateOnly(2026, 8, 30), null, 0);
+        var prompt = DueDateNudgePromptComposer.Compose(Career(), pending, new DateOnly(2026, 8, 30), null);
 
         Assert.Contains("ONE specific action item", prompt);
         Assert.Contains("not the weekly", prompt);
@@ -58,11 +62,9 @@ public class DueDateNudgePromptComposerTests
     [Fact]
     public void Compose_DescribesHowCloseTheDueDateIs()
     {
-        var goal = Goal.Create("career", "x");
-        var tomorrow = new DateOnly(2026, 8, 31);
-        var item = ActionItem.Create(goal.Id, "x", tomorrow);
+        var pending = Pending("x", "x", new DateOnly(2026, 8, 31));
 
-        var prompt = DueDateNudgePromptComposer.Compose(Career(), "x", item, new DateOnly(2026, 8, 30), null, 0);
+        var prompt = DueDateNudgePromptComposer.Compose(Career(), pending, new DateOnly(2026, 8, 30), null);
 
         Assert.Contains("tomorrow", prompt);
     }
@@ -70,10 +72,9 @@ public class DueDateNudgePromptComposerTests
     [Fact]
     public void Compose_FlagsAnOverdueItem()
     {
-        var goal = Goal.Create("career", "x");
-        var item = ActionItem.Create(goal.Id, "x", new DateOnly(2026, 8, 28));
+        var pending = Pending("x", "x", new DateOnly(2026, 8, 28));
 
-        var prompt = DueDateNudgePromptComposer.Compose(Career(), "x", item, new DateOnly(2026, 8, 30), null, 0);
+        var prompt = DueDateNudgePromptComposer.Compose(Career(), pending, new DateOnly(2026, 8, 30), null);
 
         Assert.Contains("2 days overdue", prompt);
     }
@@ -81,11 +82,10 @@ public class DueDateNudgePromptComposerTests
     [Fact]
     public void Compose_ReflectsTheEscalationContextWhenTheItemHasBeenNudgedBefore()
     {
-        var goal = Goal.Create("career", "x");
-        var item = ActionItem.Create(goal.Id, "x", new DateOnly(2026, 9, 1));
-
-        var first = DueDateNudgePromptComposer.Compose(Career(), "x", item, new DateOnly(2026, 8, 30), null, 0);
-        var repeat = DueDateNudgePromptComposer.Compose(Career(), "x", item, new DateOnly(2026, 8, 30), null, 3);
+        var first = DueDateNudgePromptComposer.Compose(
+            Career(), Pending("x", "x", new DateOnly(2026, 9, 1)), new DateOnly(2026, 8, 30), null);
+        var repeat = DueDateNudgePromptComposer.Compose(
+            Career(), Pending("x", "x", new DateOnly(2026, 9, 1), priorNudgeCount: 3), new DateOnly(2026, 8, 30), null);
 
         Assert.Contains("first nudge", first);
         Assert.Contains("nudged 3 times before", repeat);
@@ -94,11 +94,10 @@ public class DueDateNudgePromptComposerTests
     [Fact]
     public void Compose_IncludesTheValuesProfileWhenSet()
     {
-        var goal = Goal.Create("career", "x");
-        var item = ActionItem.Create(goal.Id, "x", new DateOnly(2026, 9, 1));
+        var pending = Pending("x", "x", new DateOnly(2026, 9, 1));
 
         var prompt = DueDateNudgePromptComposer.Compose(
-            Career(), "x", item, new DateOnly(2026, 8, 30), ValuesProfile.Create("Family evenings are protected."), 0);
+            Career(), pending, new DateOnly(2026, 8, 30), ValuesProfile.Create("Family evenings are protected."));
 
         Assert.Contains("Family evenings are protected.", prompt);
     }

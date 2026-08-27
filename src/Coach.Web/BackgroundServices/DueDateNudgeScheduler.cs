@@ -101,15 +101,16 @@ internal sealed class DueDateNudgeScheduler(
         IDueDateNudgeStore nudgeStore,
         CancellationToken cancellationToken)
     {
+        var actionItem = item.ActionItem;
         try
         {
             var text = await nudgeService.GenerateAsync(item, today, cancellationToken);
             await smsNotifier.SendAsync(text, cancellationToken);
             await nudgeStore.RecordNudgeSentAsync(
-                DueDateNudge.Create(item.ActionItem.Id, today, item.ActionItem.DueDate!.Value), cancellationToken);
+                DueDateNudge.Create(actionItem.Id, today, actionItem.DueDate!.Value), cancellationToken);
             logger.LogInformation(
                 "Sent due-date nudge for action item {ActionItemId} ({Length} chars).",
-                item.ActionItem.Id, text.Length);
+                actionItem.Id, text.Length);
             return true;
         }
         catch (OperationCanceledException)
@@ -119,7 +120,7 @@ internal sealed class DueDateNudgeScheduler(
         catch (Exception ex)
         {
             // Left unrecorded on purpose: the item resurfaces in tomorrow's run.
-            logger.LogError(ex, "Failed to send due-date nudge for action item {ActionItemId}.", item.ActionItem.Id);
+            logger.LogError(ex, "Failed to send due-date nudge for action item {ActionItemId}.", actionItem.Id);
             return false;
         }
     }

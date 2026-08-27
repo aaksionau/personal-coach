@@ -66,7 +66,7 @@ Bound from the `Sms` section (`src/Coach.Infrastructure.Sms/SmsOptions.cs`), the
 | `Nudge:Enabled`             | `true` (default); `false` keeps the scheduler dormant   |
 | `Nudge:TimeOfDay`           | `08:00:00` (default), local to `Nudge:TimeZoneId`       |
 | `Nudge:TimeZoneId`          | IANA id, `America/Chicago` (default); falls back to UTC |
-| `Nudge:LeadTimeDays`        | `2` (default) — nudge once a due date is this close     |
+| `Nudge:LeadTimeDays`        | `4` (default) — nudge once a due date is this close     |
 | `Nudge:StopAfterOverdueDays`| `7` (default) — stop nudging past this many days overdue|
 
 **Local dev:** both schedulers are disabled in `appsettings.Development.json`.

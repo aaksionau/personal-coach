@@ -35,7 +35,7 @@ digest when both fire in the same week.
   day's run.
 
 - **Escalating, not one-and-done.** An open action item keeps nudging daily while
-  its due date is within `LeadTimeDays` (default 2) or up to
+  its due date is within `LeadTimeDays` (default 4) or up to
   `StopAfterOverdueDays` (default 7) past due, until it is marked Done. The
   prompt is told the signed days-to-due and the prior-nudge count, so the model's
   urgency rises on its own rather than via separate templates.
