@@ -17,7 +17,8 @@ Clean Architecture layering, with each project's internals organized by type
 
 ```
 src/
-  Coach.Domain/          Entities (Coach, ChatMessage) and enums. No dependencies.
+  Coach.Domain/          Entities (Coach, ChatMessage, Goal, ActionItem, Reflection)
+                          and enums. No dependencies.
   Coach.Application/     Interfaces (ports), Services (Persona Registry, Context
                           Builder, Conversation Engine), Models. Depends on Domain.
   Coach.Infrastructure/   EF Core Postgres persistence + the Azure OpenAI adapter
@@ -25,8 +26,9 @@ src/
   Coach.Web/              Blazor Server UI + composition root (Program.cs). Depends
                           on Application + Infrastructure.
 tests/
-  Coach.Application.Tests/   xUnit tests for the Persona Registry and Context
-                             Builder (no DB or model call needed).
+  Coach.Application.Tests/   xUnit tests for the Persona Registry, Context Builder,
+                             Goal Tracking, and Reflections (no DB or model call
+                             needed).
 scripts/
   build-web-assets.ps1   Local-dev helper: builds Tailwind CSS + vendors Alpine.js
                           into wwwroot so `dotnet run` works without Docker.

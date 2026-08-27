@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddDbContextFactory<CoachDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IChatMessageStore, ChatMessageStore>();
         services.AddScoped<IGoalStore, GoalStore>();
+        services.AddScoped<IReflectionStore, ReflectionStore>();
 
         services.Configure<AzureAiOptions>(configuration.GetSection(AzureAiOptions.SectionName));
         // Falls back to placeholder values when unconfigured, matching the CoachDb connection

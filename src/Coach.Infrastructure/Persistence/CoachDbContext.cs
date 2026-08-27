@@ -16,6 +16,8 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
 
     public DbSet<ActionItem> ActionItems => Set<ActionItem>();
 
+    public DbSet<Reflection> Reflections => Set<Reflection>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<CoachEntity>(entity =>
@@ -56,6 +58,15 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
             entity.Property(a => a.Status).HasConversion<string>().HasMaxLength(16);
             entity.HasOne<Goal>().WithMany().HasForeignKey(a => a.GoalId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(a => a.GoalId);
+        });
+
+        modelBuilder.Entity<Reflection>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.CoachSlug).HasMaxLength(64);
+            entity.Property(r => r.Content).HasMaxLength(4000);
+            entity.HasOne<CoachEntity>().WithMany().HasForeignKey(r => r.CoachSlug);
+            entity.HasIndex(r => new { r.CoachSlug, r.CreatedAtUtc });
         });
     }
 }

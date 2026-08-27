@@ -9,6 +9,7 @@ public static class DependencyInjection
     {
         services.AddSingleton<CoachPersonaRegistry>();
         services.AddScoped<GoalTrackingService>();
+        services.AddScoped<ReflectionService>();
         services.AddScoped<CoachContextBuilder>();
         services.AddScoped<CoachConversationEngine>();
         return services;

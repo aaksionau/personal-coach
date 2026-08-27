@@ -17,7 +17,8 @@ public sealed class CoachConversationEngine(
     CoachContextBuilder contextBuilder,
     IChatMessageStore chatMessageStore,
     AIAgent agent,
-    GoalTrackingService goalTrackingService)
+    GoalTrackingService goalTrackingService,
+    ReflectionService reflectionService)
 {
     public async Task<ConversationTurn> SendMessageAsync(string coachSlug, string userMessage, CancellationToken cancellationToken)
     {
@@ -26,13 +27,19 @@ public sealed class CoachConversationEngine(
         var userChatMessage = DomainChatMessage.Create(coachSlug, ChatMessageRole.User, userMessage);
         await chatMessageStore.AddAsync(userChatMessage, cancellationToken);
 
-        var systemPrompt = context.Persona.SystemPrompt + "\n\n" + GoalContextFormatter.Format(context.Goals);
+        var systemPrompt = context.Persona.SystemPrompt
+            + "\n\n" + GoalContextFormatter.Format(context.Goals)
+            + "\n\n" + ReflectionContextFormatter.Format(context.Reflections);
 
         var messages = new List<ChatMessage>(context.RecentMessages.Count + 2) { new(ChatRole.System, systemPrompt) };
         messages.AddRange(context.RecentMessages.Select(ToAiChatMessage));
         messages.Add(ToAiChatMessage(userChatMessage));
 
-        var tools = new GoalActionTools(goalTrackingService, coachSlug).AsTools();
+        List<AITool> tools =
+        [
+            .. new GoalActionTools(goalTrackingService, coachSlug).AsTools(),
+            .. new ReflectionTools(reflectionService, coachSlug).AsTools(),
+        ];
         var runOptions = new ChatClientAgentRunOptions(new ChatOptions { Tools = tools });
 
         var response = await agent.RunAsync(messages, options: runOptions, cancellationToken: cancellationToken);
