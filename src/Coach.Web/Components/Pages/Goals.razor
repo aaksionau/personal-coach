@@ -1,4 +1,4 @@
-@page "/goals"
+@page "/{CoachSlug}/goals"
 @rendermode InteractiveServer
 @implements IDisposable
 @using Coach.Application.Models
@@ -6,12 +6,14 @@
 @using Coach.Domain.Entities
 @using Coach.Domain.Enums
 @inject GoalTrackingService GoalTrackingService
+@inject CoachPersonaRegistry Registry
+@inject NavigationManager Nav
 
 <PageTitle>Coach - Goals</PageTitle>
 
 <div class="min-h-0 flex-1 overflow-y-auto">
     <div class="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-        <h1 class="text-xl font-semibold text-slate-900">Career Goals</h1>
+        <h1 class="text-xl font-semibold text-slate-900">Goals</h1>
         <p class="mt-1 text-sm text-slate-500">Track what you're working toward and the steps to get there.</p>
 
         @if (_busy.Error is not null)
@@ -146,16 +148,37 @@
 </div>
 
 @code {
-    private const string CoachSlug = "career";
+    [Parameter]
+    public string CoachSlug { get; set; } = string.Empty;
 
     private readonly CancellationTokenSource _cts = new();
     private readonly BusyState _busy = new();
     private readonly Dictionary<Guid, ActionItemDraft> _actionItemDrafts = [];
 
+    private string? _loadedSlug;
     private List<GoalWithActionItems>? _goals;
     private string _newGoalTitle = string.Empty;
 
-    protected override Task OnInitializedAsync() => LoadGoalsAsync();
+    protected override Task OnParametersSetAsync()
+    {
+        if (_loadedSlug == CoachSlug)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (!Registry.TryGet(CoachSlug, out _))
+        {
+            Nav.NavigateTo("not-found");
+            return Task.CompletedTask;
+        }
+
+        _loadedSlug = CoachSlug;
+        _goals = null;
+        _newGoalTitle = string.Empty;
+        _actionItemDrafts.Clear();
+        _busy.Error = null;
+        return LoadGoalsAsync();
+    }
 
     private static bool IsOverdue(ActionItem actionItem) =>
         actionItem.Status == ActionItemStatus.Open

@@ -4,16 +4,25 @@ namespace Coach.Application.Tests;
 
 public class CoachPersonaRegistryTests
 {
-    [Fact]
-    public void TryGet_ReturnsCareerPersona_ForCareerSlug()
+    public static TheoryData<string, string> ExpectedPersonas => new()
+    {
+        { "career", "Career Coach" },
+        { "health", "Health Coach" },
+        { "relationships", "Relationships Coach" },
+        { "kids", "Kids Coach" },
+    };
+
+    [Theory]
+    [MemberData(nameof(ExpectedPersonas))]
+    public void TryGet_ResolvesEachPersona_ToItsExpectedConfiguration(string slug, string expectedName)
     {
         var registry = new CoachPersonaRegistry();
 
-        var found = registry.TryGet("career", out var persona);
+        var found = registry.TryGet(slug, out var persona);
 
         Assert.True(found);
-        Assert.Equal("career", persona.Slug);
-        Assert.Equal("Career Coach", persona.Name);
+        Assert.Equal(slug, persona.Slug);
+        Assert.Equal(expectedName, persona.Name);
         Assert.False(string.IsNullOrWhiteSpace(persona.SystemPrompt));
         Assert.False(string.IsNullOrWhiteSpace(persona.Tone));
     }
@@ -23,19 +32,19 @@ public class CoachPersonaRegistryTests
     {
         var registry = new CoachPersonaRegistry();
 
-        var found = registry.TryGet("health", out var persona);
+        var found = registry.TryGet("finance", out var persona);
 
         Assert.False(found);
         Assert.Null(persona);
     }
 
     [Fact]
-    public void GetAll_IncludesTheCareerPersona()
+    public void GetAll_ReturnsExactlyTheFourRegisteredPersonas()
     {
         var registry = new CoachPersonaRegistry();
 
-        var personas = registry.GetAll();
+        var slugs = registry.GetAll().Select(p => p.Slug).OrderBy(s => s);
 
-        Assert.Contains(personas, p => p.Slug == "career");
+        Assert.Equal(new[] { "career", "health", "kids", "relationships" }, slugs);
     }
 }
