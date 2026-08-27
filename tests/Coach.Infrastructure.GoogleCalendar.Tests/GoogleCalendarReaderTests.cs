@@ -29,6 +29,26 @@ public class GoogleCalendarReaderTests
     }
 
     [Fact]
+    public async Task GetUpcomingEventsAsync_QueriesTheExactNumberOfDaysRequested()
+    {
+        var events = new FakeGoogleCalendarEvents();
+
+        await ReaderFor(events, Configured).GetUpcomingEventsAsync(14, CancellationToken.None);
+
+        Assert.Equal(TimeSpan.FromDays(14), events.LastTimeMax - events.LastTimeMin);
+    }
+
+    [Fact]
+    public async Task GetUpcomingEventsAsync_ClampsANegativeWindowToAnEmptyRange()
+    {
+        var events = new FakeGoogleCalendarEvents();
+
+        await ReaderFor(events, Configured).GetUpcomingEventsAsync(-3, CancellationToken.None);
+
+        Assert.Equal(events.LastTimeMin, events.LastTimeMax);
+    }
+
+    [Fact]
     public async Task GetUpcomingEventsAsync_ReturnsNormalizedEvents_FromTheApi()
     {
         var start = new DateTimeOffset(2026, 8, 28, 9, 0, 0, TimeSpan.Zero);

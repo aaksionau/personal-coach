@@ -17,6 +17,11 @@ namespace Coach.Infrastructure.GoogleCalendar;
 /// </summary>
 internal sealed class GoogleCalendarEvents : IGoogleCalendarEvents, IDisposable
 {
+    /// <summary>
+    /// Upper bound on events pulled for one window. A personal calendar won't approach this over a
+    /// week-long lookahead; if it ever does, the soonest 100 (the list is ordered by start time) are
+    /// what a coach turn sees.
+    /// </summary>
     private const int MaxEvents = 100;
 
     private readonly GoogleCalendarOptions _options;

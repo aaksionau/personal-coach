@@ -9,4 +9,5 @@ public sealed record CoachContext(
     CoachTrackedState OwnState,
     ValuesProfile? ValuesProfile,
     IReadOnlyList<CoachTrackedState> OtherCoachStates,
-    IReadOnlyList<CalendarEvent> UpcomingEvents);
+    IReadOnlyList<CalendarEvent> UpcomingEvents,
+    int CalendarLookaheadDays);

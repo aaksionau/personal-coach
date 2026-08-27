@@ -22,7 +22,7 @@ public static class CalendarContextFormatter
             $"Upcoming calendar events over the next {withinDays} days (read-only -- for scheduling awareness, you cannot change these):\n");
         foreach (var calendarEvent in events)
         {
-            builder.Append("- ").Append(FormatWhen(calendarEvent)).Append(") ").Append(calendarEvent.Title);
+            builder.Append("- ").Append(FormatWhen(calendarEvent)).Append(' ').Append(calendarEvent.Title);
             if (!string.IsNullOrWhiteSpace(calendarEvent.Location))
             {
                 builder.Append(" @ ").Append(calendarEvent.Location);
@@ -36,6 +36,6 @@ public static class CalendarContextFormatter
 
     private static string FormatWhen(CalendarEvent calendarEvent) =>
         calendarEvent.IsAllDay
-            ? $"({calendarEvent.Start:yyyy-MM-dd}, all day"
-            : $"({calendarEvent.Start:yyyy-MM-dd HH:mm}";
+            ? $"({calendarEvent.Start:yyyy-MM-dd}, all day)"
+            : $"({calendarEvent.Start:yyyy-MM-dd HH:mm})";
 }

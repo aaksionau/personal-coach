@@ -47,6 +47,36 @@ public class GoogleCalendarEventMapperTests
     }
 
     [Fact]
+    public void Map_AnchorsAllDayEventsToMidnightInTheCalendarsTimeZone()
+    {
+        var response = new Events
+        {
+            TimeZone = "America/New_York",
+            Items = [new Event { Summary = "Conference", Start = new EventDateTime { Date = "2026-08-29" } }],
+        };
+
+        var mapped = Assert.Single(GoogleCalendarEventMapper.Map(response));
+
+        Assert.True(mapped.IsAllDay);
+        // 2026-08-29 is EDT (UTC-4): local midnight, not UTC midnight.
+        Assert.Equal(new DateTimeOffset(2026, 8, 29, 0, 0, 0, TimeSpan.FromHours(-4)), mapped.Start);
+    }
+
+    [Fact]
+    public void Map_FallsBackToUtc_ForAllDayEvents_WhenTheResponseHasNoOrAnUnknownTimeZone()
+    {
+        var response = new Events
+        {
+            TimeZone = "Not/AZone",
+            Items = [new Event { Summary = "Conference", Start = new EventDateTime { Date = "2026-08-29" } }],
+        };
+
+        var mapped = Assert.Single(GoogleCalendarEventMapper.Map(response));
+
+        Assert.Equal(new DateTimeOffset(2026, 8, 29, 0, 0, 0, TimeSpan.Zero), mapped.Start);
+    }
+
+    [Fact]
     public void Map_SkipsCancelledEvents()
     {
         var response = ResponseWith(new Event

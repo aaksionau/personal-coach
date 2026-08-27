@@ -1,4 +1,3 @@
-using Coach.Application.Builders;
 using Coach.Application.Models;
 
 namespace Coach.Application.Formatters;
@@ -18,5 +17,5 @@ public static class CoachSystemPromptComposer
         + "\n\n" + GoalContextFormatter.Format(context.OwnState.Goals)
         + "\n\n" + ReflectionContextFormatter.Format(context.OwnState.Reflections)
         + "\n\n" + CrossCoachContextFormatter.Format(context.OtherCoachStates)
-        + "\n\n" + CalendarContextFormatter.Format(context.UpcomingEvents, CoachContextBuilder.CalendarLookaheadDays);
+        + "\n\n" + CalendarContextFormatter.Format(context.UpcomingEvents, context.CalendarLookaheadDays);
 }

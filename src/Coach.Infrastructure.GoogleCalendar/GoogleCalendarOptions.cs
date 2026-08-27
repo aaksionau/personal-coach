@@ -6,7 +6,7 @@ namespace Coach.Infrastructure.GoogleCalendar;
 /// one-time browser authorization the user performs themselves (see docs/google-calendar-setup.md).
 /// All blank by default so the app boots without them -- the reader then returns no events.
 /// </summary>
-public sealed class GoogleCalendarOptions
+internal sealed class GoogleCalendarOptions
 {
     public const string SectionName = "GoogleCalendar";
 

@@ -167,6 +167,6 @@ public class CoachContextBuilderTests
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
         Assert.Equal("Dentist", Assert.Single(context.UpcomingEvents).Title);
-        Assert.Equal(CoachContextBuilder.CalendarLookaheadDays, calendarReader.LastRequestedWithinDays);
+        Assert.Equal(context.CalendarLookaheadDays, calendarReader.LastRequestedWithinDays);
     }
 }

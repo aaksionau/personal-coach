@@ -13,8 +13,11 @@ public static class DependencyInjection
     public static IServiceCollection AddCoachGoogleCalendar(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<GoogleCalendarOptions>(configuration.GetSection(GoogleCalendarOptions.SectionName));
-        services.AddScoped<IGoogleCalendarEvents, GoogleCalendarEvents>();
-        services.AddScoped<ICalendarReader, GoogleCalendarReader>();
+
+        // Stateless and thread-safe (immutable options + a lazily-built, thread-safe CalendarService),
+        // so Singleton -- like the AIAgent -- rather than rebuilding the auth stack per Blazor circuit.
+        services.AddSingleton<IGoogleCalendarEvents, GoogleCalendarEvents>();
+        services.AddSingleton<ICalendarReader, GoogleCalendarReader>();
         return services;
     }
 }
