@@ -74,13 +74,12 @@
         _draft = string.Empty;
         _pendingUserMessage = userMessage;
 
-        // The transcript before this turn -- ContinueAsync appends the user message itself.
-        var history = _messages.ToList();
-
         await _busy.RunAsync(
             async () =>
             {
-                var reply = await ValuesWizardService.ContinueAsync(history, userMessage, _cts.Token);
+                // _messages is the transcript before this turn -- ContinueAsync reads it synchronously
+                // and appends userMessage itself. Safe to pass directly (single-threaded circuit).
+                var reply = await ValuesWizardService.ContinueAsync(_messages, userMessage, _cts.Token);
                 _messages.Add(new ValuesWizardMessage(IsUser: true, userMessage));
                 _messages.Add(new ValuesWizardMessage(IsUser: false, reply.Reply));
                 _saved = reply.ProfileSaved;

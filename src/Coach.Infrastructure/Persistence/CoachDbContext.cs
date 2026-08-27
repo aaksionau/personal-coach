@@ -18,6 +18,8 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
 
     public DbSet<Reflection> Reflections => Set<Reflection>();
 
+    // Global, not coach-scoped (no CoachSlug/FK); single row keyed by ValuesProfile.SingletonId.
+    // Id is the PK by convention and Content maps to unbounded text, so no OnModelCreating block.
     public DbSet<ValuesProfile> ValuesProfiles => Set<ValuesProfile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -70,13 +72,6 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
             // ChatMessage.Content, so an over-long value can't throw past ModelToolGuard.
             entity.HasOne<CoachEntity>().WithMany().HasForeignKey(r => r.CoachSlug);
             entity.HasIndex(r => new { r.CoachSlug, r.CreatedAtUtc });
-        });
-
-        modelBuilder.Entity<ValuesProfile>(entity =>
-        {
-            entity.HasKey(p => p.Id);
-            // Global, not coach-scoped -- no CoachSlug/FK. Content is free-form model-generated or
-            // user-edited prose, left as unbounded text like ChatMessage.Content / Reflection.Content.
         });
     }
 }

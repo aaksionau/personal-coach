@@ -35,7 +35,7 @@ public sealed class ValuesWizardService(AIAgent agent, ValuesProfileService valu
         messages.AddRange(history.Select(m => new ChatMessage(m.IsUser ? ChatRole.User : ChatRole.Assistant, m.Content)));
         messages.Add(new ChatMessage(ChatRole.User, userMessage));
 
-        var runOptions = new ChatClientAgentRunOptions(new ChatOptions { Tools = [.. tools.AsTools()] });
+        var runOptions = new ChatClientAgentRunOptions(new ChatOptions { Tools = tools.AsTools() });
         var response = await agent.RunAsync(messages, options: runOptions, cancellationToken: cancellationToken);
 
         return new ValuesWizardReply(response.Text, tools.Saved);

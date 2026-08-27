@@ -23,10 +23,13 @@ public sealed class ValuesProfileStore(IDbContextFactory<CoachDbContext> dbConte
 
     public async Task UpdateAsync(ValuesProfile profile, CancellationToken cancellationToken)
     {
-        // The read side is AsNoTracking, so the entity arrives detached -- Update marks it for a
-        // full-row UPDATE (Content + UpdatedAtUtc are the only fields the service mutates).
+        // Reads are AsNoTracking, so the entity is detached. Attach and mark only the fields the
+        // service mutates -- leaves the immutable Id/CreatedAtUtc out of the UPDATE. Mirrors
+        // GoalStore.UpdateActionItemStatusAsync.
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        dbContext.ValuesProfiles.Update(profile);
+        dbContext.ValuesProfiles.Attach(profile);
+        dbContext.Entry(profile).Property(p => p.Content).IsModified = true;
+        dbContext.Entry(profile).Property(p => p.UpdatedAtUtc).IsModified = true;
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

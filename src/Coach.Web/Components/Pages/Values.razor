@@ -1,6 +1,5 @@
 @page "/values"
 @rendermode InteractiveServer
-@implements IDisposable
 @using Coach.Application.Services
 @using Coach.Domain.Entities
 @inject ValuesProfileService ValuesProfileService
@@ -87,18 +86,19 @@
 
 @code {
     private readonly BusyState _busy = new();
-    private readonly CancellationTokenSource _cts = new();
 
     private ValuesProfile? _profile;
     private bool _loading = true;
     private bool _editing;
     private string _draft = string.Empty;
 
+    // Cheap single-row reads/writes -- not worth a CancellationTokenSource; a dropped circuit just
+    // discards the result. (The wizard page keeps one because its model call is expensive to leave running.)
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _profile = await ValuesProfileService.GetProfileAsync(_cts.Token);
+            _profile = await ValuesProfileService.GetProfileAsync(CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -117,11 +117,7 @@
         _busy.Error = null;
     }
 
-    private void CancelEdit()
-    {
-        _editing = false;
-        _draft = string.Empty;
-    }
+    private void CancelEdit() => _editing = false;
 
     private Task SaveAsync()
     {
@@ -133,16 +129,9 @@
         return _busy.RunAsync(
             async () =>
             {
-                _profile = await ValuesProfileService.SaveProfileAsync(_draft, _cts.Token);
+                _profile = await ValuesProfileService.SaveProfileAsync(_draft, CancellationToken.None);
                 _editing = false;
-                _draft = string.Empty;
             },
             ex => $"Couldn't save your values profile: {ex.Message}");
-    }
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
     }
 }

@@ -9,9 +9,9 @@ namespace Coach.Domain.Entities;
 public sealed class ValuesProfile
 {
     /// <summary>
-    /// Fixed primary key for the one and only values profile row. Using a constant id makes the
-    /// "single global row" invariant a hard database constraint -- a second insert collides on the
-    /// primary key rather than silently creating a duplicate.
+    /// Fixed primary key for the one and only values profile row. Every read and write goes through
+    /// this id (see <c>ValuesProfileService</c> / <c>ValuesProfileStore</c>), so a racing second
+    /// insert collides on the primary key instead of silently creating a duplicate row.
     /// </summary>
     public static readonly Guid SingletonId = new("0f1b2c3d-0000-0000-0000-000000000001");
 
