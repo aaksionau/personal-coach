@@ -1,4 +1,3 @@
-using Coach.Application.Interfaces;
 using Coach.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,7 +9,6 @@ public static class DependencyInjection
     {
         services.AddSingleton<CoachPersonaRegistry>();
         services.AddScoped<GoalTrackingService>();
-        services.AddScoped<IGoalActionExecutor, GoalActionExecutor>();
         services.AddScoped<CoachContextBuilder>();
         services.AddScoped<CoachConversationEngine>();
         return services;
