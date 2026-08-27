@@ -13,7 +13,9 @@ public sealed class ReflectionService(IReflectionStore reflectionStore)
 {
     public async Task<Reflection> RecordReflectionAsync(string coachSlug, string content, CancellationToken cancellationToken)
     {
-        var trimmedContent = content.Trim();
+        // content is a tool-call argument -- untrusted model output that can arrive null or blank.
+        // A validation failure here surfaces as text via ModelToolGuard rather than throwing.
+        var trimmedContent = (content ?? string.Empty).Trim();
         if (trimmedContent.Length == 0)
         {
             throw new ArgumentException("Reflection content is required.", nameof(content));

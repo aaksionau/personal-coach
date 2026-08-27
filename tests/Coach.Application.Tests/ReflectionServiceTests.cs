@@ -19,13 +19,15 @@ public class ReflectionServiceTests
         Assert.Single(store.Added);
     }
 
-    [Fact]
-    public async Task RecordReflectionAsync_Throws_ForBlankContent()
+    [Theory]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public async Task RecordReflectionAsync_ThrowsArgumentException_ForMissingContent(string? content)
     {
         var service = new ReflectionService(new FakeReflectionStore());
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.RecordReflectionAsync("career", "   ", CancellationToken.None));
+            service.RecordReflectionAsync("career", content!, CancellationToken.None));
     }
 
     [Fact]

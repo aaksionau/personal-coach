@@ -17,14 +17,9 @@ public sealed class ReflectionStore(IDbContextFactory<CoachDbContext> dbContextF
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        var recentDescending = await dbContext.Reflections
+        return await dbContext.Reflections
             .AsNoTracking()
             .Where(r => r.CoachSlug == coachSlug)
-            .OrderByDescending(r => r.CreatedAtUtc)
-            .Take(count)
-            .ToListAsync(cancellationToken);
-
-        recentDescending.Reverse();
-        return recentDescending;
+            .ToRecentWindowAsync(r => r.CreatedAtUtc, count, cancellationToken);
     }
 }

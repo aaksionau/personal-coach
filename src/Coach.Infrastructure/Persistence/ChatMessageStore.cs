@@ -10,15 +10,10 @@ public sealed class ChatMessageStore(IDbContextFactory<CoachDbContext> dbContext
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        var recentDescending = await dbContext.ChatMessages
+        return await dbContext.ChatMessages
             .AsNoTracking()
             .Where(m => m.CoachSlug == coachSlug)
-            .OrderByDescending(m => m.CreatedAtUtc)
-            .Take(count)
-            .ToListAsync(cancellationToken);
-
-        recentDescending.Reverse();
-        return recentDescending;
+            .ToRecentWindowAsync(m => m.CreatedAtUtc, count, cancellationToken);
     }
 
     public async Task AddAsync(ChatMessage message, CancellationToken cancellationToken)

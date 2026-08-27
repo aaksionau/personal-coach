@@ -17,7 +17,7 @@ namespace Coach.Infrastructure.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     CoachSlug = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Content = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: false),
                     CreatedAtUtc = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>

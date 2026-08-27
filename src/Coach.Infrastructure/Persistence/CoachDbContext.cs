@@ -64,7 +64,8 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
         {
             entity.HasKey(r => r.Id);
             entity.Property(r => r.CoachSlug).HasMaxLength(64);
-            entity.Property(r => r.Content).HasMaxLength(4000);
+            // Content is free-form model-generated prose -- left as unbounded text, matching
+            // ChatMessage.Content, so an over-long value can't throw past ModelToolGuard.
             entity.HasOne<CoachEntity>().WithMany().HasForeignKey(r => r.CoachSlug);
             entity.HasIndex(r => new { r.CoachSlug, r.CreatedAtUtc });
         });
