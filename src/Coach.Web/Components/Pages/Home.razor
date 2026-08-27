@@ -8,59 +8,57 @@
 @inject CoachConversationEngine ConversationEngine
 @inject IChatMessageStore ChatMessageStore
 
-<PageTitle>Coach</PageTitle>
+<PageTitle>Coach - Chat</PageTitle>
 
-<div class="mx-auto flex h-screen max-w-2xl flex-col px-6 py-8">
-    <h1 class="text-2xl font-bold text-slate-900">Career Coach</h1>
-
-    <div class="mt-4 flex-1 space-y-3 overflow-y-auto rounded-lg border border-slate-200 bg-white p-4">
+<div class="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 sm:px-6">
+    <div class="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
         @if (_messages is null)
         {
-            <p class="text-slate-500">Loading conversation...</p>
+            <p class="text-sm text-slate-500">Loading conversation...</p>
         }
         else if (_messages.Count == 0)
         {
-            <p class="text-slate-500">Say hello to get started.</p>
+            <div class="flex h-full flex-col items-center justify-center py-16 text-center">
+                <p class="text-lg font-medium text-slate-700">Say hello to get started</p>
+                <p class="mt-1 text-sm text-slate-500">Your career coach is ready when you are.</p>
+            </div>
         }
         else
         {
             @foreach (var message in _messages)
             {
-                <div class="@(message.Role == ChatMessageRole.User ? "text-right" : "text-left")" @key="message.Id">
-                    <span class="@(message.Role == ChatMessageRole.User
-                        ? "inline-block rounded-lg bg-slate-900 px-3 py-2 text-white"
-                        : "inline-block rounded-lg bg-slate-100 px-3 py-2 text-slate-900")">
-                        @message.Content
-                    </span>
-                </div>
+                <ChatBubble IsUser="message.Role == ChatMessageRole.User" Content="message.Content" @key="message.Id" />
             }
         }
         @if (_pendingUserMessage is not null)
         {
-            <div class="text-right">
-                <span class="inline-block rounded-lg bg-slate-900 px-3 py-2 text-white opacity-60">
-                    @_pendingUserMessage
-                </span>
-            </div>
+            <ChatBubble IsUser="true" Content="_pendingUserMessage" Pending="true" />
         }
     </div>
 
-    @if (_error is not null)
+    @if (_busy.Error is not null)
     {
-        <p class="mt-2 font-medium text-red-700">@_error</p>
+        <div
+            class="mb-3 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700"
+            x-data="{ show: true }"
+            x-show="show"
+            x-transition>
+            <span>@_busy.Error</span>
+            <button type="button" class="shrink-0 font-medium text-red-700/70 hover:text-red-900" x-on:click="show = false">✕</button>
+        </div>
     }
 
-    <form class="mt-4 flex gap-2" @onsubmit="SendAsync">
+    <form class="flex gap-2 border-t border-slate-200 py-3" @onsubmit="SendAsync">
         <input
-            class="flex-1 rounded border border-slate-300 px-3 py-2"
+            class="min-w-0 flex-1 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm shadow-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
             @bind="_draft"
             @bind:event="oninput"
             placeholder="Message your career coach..."
-            disabled="@_sending" />
+            disabled="@_busy.Busy" />
         <button
             type="submit"
-            class="rounded bg-slate-900 px-4 py-2 font-medium text-white disabled:opacity-50"
-            disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))">
+            class="shrink-0 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
+            disabled="@(_busy.Busy || string.IsNullOrWhiteSpace(_draft))">
             Send
         </button>
     </form>
@@ -70,11 +68,10 @@
     private const string CoachSlug = "career";
 
     private readonly CancellationTokenSource _cts = new();
+    private readonly BusyState _busy = new();
 
     private List<ChatMessage>? _messages;
     private string _draft = string.Empty;
-    private bool _sending;
-    private string? _error;
     private string? _pendingUserMessage;
 
     protected override async Task OnInitializedAsync()
@@ -87,39 +84,35 @@
         catch (Exception ex)
         {
             _messages = [];
-            _error = $"Couldn't load conversation history: {ex.Message}";
+            _busy.Error = $"Couldn't load conversation history: {ex.Message}";
         }
     }
 
     private async Task SendAsync()
     {
-        if (string.IsNullOrWhiteSpace(_draft) || _sending)
+        if (string.IsNullOrWhiteSpace(_draft) || _busy.Busy)
         {
             return;
         }
 
         var userMessage = _draft;
         _draft = string.Empty;
-        _sending = true;
-        _error = null;
         _pendingUserMessage = userMessage;
 
-        try
-        {
-            var turn = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, _cts.Token);
-            _messages!.Add(turn.UserMessage);
-            _messages.Add(turn.AssistantMessage);
-        }
-        catch (Exception ex)
-        {
-            _draft = userMessage;
-            _error = $"Coach didn't reply: {ex.Message}";
-        }
-        finally
-        {
-            _pendingUserMessage = null;
-            _sending = false;
-        }
+        await _busy.RunAsync(
+            async () =>
+            {
+                var turn = await ConversationEngine.SendMessageAsync(CoachSlug, userMessage, _cts.Token);
+                _messages!.Add(turn.UserMessage);
+                _messages.Add(turn.AssistantMessage);
+            },
+            ex =>
+            {
+                _draft = userMessage;
+                return $"Coach didn't reply: {ex.Message}";
+            });
+
+        _pendingUserMessage = null;
     }
 
     public void Dispose()

@@ -1,4 +1,5 @@
 using Coach.Application.Services;
+using Coach.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using CoachEntity = Coach.Domain.Entities.Coach;
 using ChatMessageEntity = Coach.Domain.Entities.ChatMessage;
@@ -10,6 +11,10 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
     public DbSet<CoachEntity> Coaches => Set<CoachEntity>();
 
     public DbSet<ChatMessageEntity> ChatMessages => Set<ChatMessageEntity>();
+
+    public DbSet<Goal> Goals => Set<Goal>();
+
+    public DbSet<ActionItem> ActionItems => Set<ActionItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,6 +38,24 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
             entity.Property(m => m.Role).HasConversion<string>().HasMaxLength(16);
             entity.HasOne<CoachEntity>().WithMany().HasForeignKey(m => m.CoachSlug);
             entity.HasIndex(m => new { m.CoachSlug, m.CreatedAtUtc });
+        });
+
+        modelBuilder.Entity<Goal>(entity =>
+        {
+            entity.HasKey(g => g.Id);
+            entity.Property(g => g.CoachSlug).HasMaxLength(64);
+            entity.Property(g => g.Title).HasMaxLength(256);
+            entity.HasOne<CoachEntity>().WithMany().HasForeignKey(g => g.CoachSlug);
+            entity.HasIndex(g => g.CoachSlug);
+        });
+
+        modelBuilder.Entity<ActionItem>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.Description).HasMaxLength(512);
+            entity.Property(a => a.Status).HasConversion<string>().HasMaxLength(16);
+            entity.HasOne<Goal>().WithMany().HasForeignKey(a => a.GoalId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(a => a.GoalId);
         });
     }
 }

@@ -1,37 +1,48 @@
 using Coach.Application.Interfaces;
 using Coach.Application.Models;
-using Coach.Domain.Entities;
 using Coach.Domain.Enums;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+using DomainChatMessage = Coach.Domain.Entities.ChatMessage;
 
 namespace Coach.Application.Services;
 
 /// <summary>
 /// Drives one chat turn: builds context, persists the user's message, calls the model deployment
-/// via <see cref="IChatCompletionClient"/>, and persists + returns the assistant's reply. Returns
-/// the persisted entities themselves so callers render the authoritative record of the turn
-/// rather than reconstructing their own copy.
+/// via the Microsoft Agent Framework <see cref="AIAgent"/>, and persists + returns the assistant's
+/// reply. Returns the persisted entities themselves so callers render the authoritative record of
+/// the turn rather than reconstructing their own copy.
 /// </summary>
 public sealed class CoachConversationEngine(
     CoachContextBuilder contextBuilder,
     IChatMessageStore chatMessageStore,
-    IChatCompletionClient chatCompletionClient)
+    AIAgent agent,
+    GoalTrackingService goalTrackingService)
 {
     public async Task<ConversationTurn> SendMessageAsync(string coachSlug, string userMessage, CancellationToken cancellationToken)
     {
         var context = await contextBuilder.BuildAsync(coachSlug, cancellationToken);
 
-        var userChatMessage = ChatMessage.Create(coachSlug, ChatMessageRole.User, userMessage);
+        var userChatMessage = DomainChatMessage.Create(coachSlug, ChatMessageRole.User, userMessage);
         await chatMessageStore.AddAsync(userChatMessage, cancellationToken);
 
-        var conversation = new List<ChatMessage>(context.RecentMessages.Count + 1);
-        conversation.AddRange(context.RecentMessages);
-        conversation.Add(userChatMessage);
+        var systemPrompt = context.Persona.SystemPrompt + "\n\n" + GoalContextFormatter.Format(context.Goals);
 
-        var reply = await chatCompletionClient.GetReplyAsync(context.Persona.SystemPrompt, conversation, cancellationToken);
+        var messages = new List<ChatMessage>(context.RecentMessages.Count + 2) { new(ChatRole.System, systemPrompt) };
+        messages.AddRange(context.RecentMessages.Select(ToAiChatMessage));
+        messages.Add(ToAiChatMessage(userChatMessage));
 
-        var assistantChatMessage = ChatMessage.Create(coachSlug, ChatMessageRole.Assistant, reply);
+        var tools = new GoalActionTools(goalTrackingService, coachSlug).AsTools();
+        var runOptions = new ChatClientAgentRunOptions(new ChatOptions { Tools = tools });
+
+        var response = await agent.RunAsync(messages, options: runOptions, cancellationToken: cancellationToken);
+
+        var assistantChatMessage = DomainChatMessage.Create(coachSlug, ChatMessageRole.Assistant, response.Text);
         await chatMessageStore.AddAsync(assistantChatMessage, cancellationToken);
 
         return new ConversationTurn(userChatMessage, assistantChatMessage);
     }
+
+    private static ChatMessage ToAiChatMessage(DomainChatMessage message) =>
+        new(message.Role == ChatMessageRole.User ? ChatRole.User : ChatRole.Assistant, message.Content);
 }

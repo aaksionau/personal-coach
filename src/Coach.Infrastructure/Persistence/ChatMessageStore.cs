@@ -4,10 +4,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Coach.Infrastructure.Persistence;
 
-public sealed class ChatMessageStore(CoachDbContext dbContext) : IChatMessageStore
+public sealed class ChatMessageStore(IDbContextFactory<CoachDbContext> dbContextFactory) : IChatMessageStore
 {
     public async Task<IReadOnlyList<ChatMessage>> GetRecentAsync(string coachSlug, int count, CancellationToken cancellationToken)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
         var recentDescending = await dbContext.ChatMessages
             .AsNoTracking()
             .Where(m => m.CoachSlug == coachSlug)
@@ -21,6 +23,7 @@ public sealed class ChatMessageStore(CoachDbContext dbContext) : IChatMessageSto
 
     public async Task AddAsync(ChatMessage message, CancellationToken cancellationToken)
     {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         dbContext.ChatMessages.Add(message);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
