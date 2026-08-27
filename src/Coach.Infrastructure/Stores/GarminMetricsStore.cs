@@ -20,15 +20,11 @@ public sealed class GarminMetricsStore(IDbContextFactory<CoachDbContext> dbConte
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         // Replace the day wholesale -- simplest way to keep a re-ingested day idempotent without
-        // diffing individual activities. The delete-then-insert spans four statements, so run it in
-        // one transaction: a crash mid-sequence must not leave the day with its children gone and no
-        // parent row (or vice versa).
+        // diffing individual activities. Deleting the parent row cascades to its activities at the
+        // DB level (FK is ON DELETE CASCADE), then we re-insert. Run it in one transaction: a crash
+        // between the delete and the insert must not leave the day gone entirely.
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-        // ExecuteDeleteAsync doesn't cascade, so clear children first.
-        await dbContext.GarminActivitySummaries
-            .Where(a => a.Date == metric.Date)
-            .ExecuteDeleteAsync(cancellationToken);
         await dbContext.GarminDailyMetrics
             .Where(m => m.Date == metric.Date)
             .ExecuteDeleteAsync(cancellationToken);

@@ -2,7 +2,6 @@ using Coach.Application;
 using Coach.Infrastructure;
 using Coach.Infrastructure.GoogleCalendar;
 using Coach.Web.Components;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,17 +17,7 @@ var app = builder.Build();
 
 // Best-effort: an unreachable Postgres at startup shouldn't take the whole app down -- the chat
 // page surfaces the resulting failure the same way the health check used to.
-using (var scope = app.Services.CreateScope())
-{
-    try
-    {
-        await scope.ServiceProvider.GetRequiredService<CoachDbContext>().Database.MigrateAsync();
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogWarning(ex, "Failed to apply Coach.Web database migrations at startup.");
-    }
-}
+await app.Services.MigrateCoachDbBestEffortAsync();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

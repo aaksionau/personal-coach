@@ -19,7 +19,12 @@ public static class CoachSystemPromptComposer
         + "\n\n" + ReflectionContextFormatter.Format(context.OwnState.Reflections)
         + "\n\n" + CrossCoachContextFormatter.Format(context.OtherCoachStates)
         + "\n\n" + CalendarContextFormatter.Format(context.UpcomingEvents)
-        + (context.Persona.IncludesGarminMetrics
+        + GarminSlice(context);
+
+    // Only the Health persona carries a Garmin slice (CoachContextBuilder likewise skips the fetch
+    // for the others); its formatter states an empty day explicitly, like the slices above.
+    private static string GarminSlice(CoachContext context) =>
+        context.Persona.IncludesGarminMetrics
             ? "\n\n" + GarminContextFormatter.Format(context.GarminMetrics)
-            : string.Empty);
+            : string.Empty;
 }

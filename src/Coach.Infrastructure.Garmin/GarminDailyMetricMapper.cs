@@ -22,26 +22,28 @@ internal static class GarminDailyMetricMapper
         var summary = snapshot.Summary;
         var sleep = snapshot.Sleep?.DailySleepDto;
 
+        // summary?/sleep? -- an absent DTO leaves every field it feeds null; the nullable helper
+        // overloads pass a null straight through.
         var metric = new GarminDailyMetric
         {
             Date = date,
-            Steps = summary is null ? null : (int)summary.TotalSteps,
-            StepGoal = summary is null ? null : PositiveOrNull(summary.DailyStepGoal),
-            RestingHeartRateBpm = summary is null ? null : PositiveOrNull(summary.RestingHeartRate),
-            TotalSleepMinutes = sleep is null ? null : ToMinutes(sleep.SleepTimeSeconds),
-            DeepSleepMinutes = sleep is null ? null : ToMinutes(sleep.DeepSleepSeconds),
-            RemSleepMinutes = sleep is null ? null : ToMinutes(sleep.RemSleepSeconds),
-            LightSleepMinutes = sleep is null ? null : ToMinutes(sleep.LightSleepSeconds),
-            AwakeMinutes = sleep is null ? null : ToMinutes(sleep.AwakeSleepSeconds),
+            Steps = (int?)summary?.TotalSteps,
+            StepGoal = PositiveOrNull(summary?.DailyStepGoal),
+            RestingHeartRateBpm = PositiveOrNull(summary?.RestingHeartRate),
+            TotalSleepMinutes = ToMinutes(sleep?.SleepTimeSeconds),
+            DeepSleepMinutes = ToMinutes(sleep?.DeepSleepSeconds),
+            RemSleepMinutes = ToMinutes(sleep?.RemSleepSeconds),
+            LightSleepMinutes = ToMinutes(sleep?.LightSleepSeconds),
+            AwakeMinutes = ToMinutes(sleep?.AwakeSleepSeconds),
             SleepScore = PositiveOrNull(sleep?.SleepScores?.Overall?.Value),
-            AverageStressLevel = summary is null ? null : PositiveOrNull(summary.AverageStressLevel),
-            MaxStressLevel = summary is null ? null : PositiveOrNull(summary.MaxStressLevel),
-            BodyBatteryHigh = summary is null ? null : PositiveOrNull(summary.BodyBatteryHighestValue),
-            BodyBatteryLow = summary is null ? null : PositiveOrNull(summary.BodyBatteryLowestValue),
-            BodyBatteryCharged = summary is null ? null : (int)summary.BodyBatteryChargedValue,
-            BodyBatteryDrained = summary is null ? null : (int)summary.BodyBatteryDrainedValue,
-            ModerateIntensityMinutes = summary is null ? null : (int)summary.ModerateIntensityMinutes,
-            VigorousIntensityMinutes = summary is null ? null : (int)summary.VigorousIntensityMinutes,
+            AverageStressLevel = PositiveOrNull(summary?.AverageStressLevel),
+            MaxStressLevel = PositiveOrNull(summary?.MaxStressLevel),
+            BodyBatteryHigh = PositiveOrNull(summary?.BodyBatteryHighestValue),
+            BodyBatteryLow = PositiveOrNull(summary?.BodyBatteryLowestValue),
+            BodyBatteryCharged = (int?)summary?.BodyBatteryChargedValue,
+            BodyBatteryDrained = (int?)summary?.BodyBatteryDrainedValue,
+            ModerateIntensityMinutes = (int?)summary?.ModerateIntensityMinutes,
+            VigorousIntensityMinutes = (int?)summary?.VigorousIntensityMinutes,
             IngestedAtUtc = ingestedAtUtc,
         };
 
@@ -66,6 +68,8 @@ internal static class GarminDailyMetricMapper
     };
 
     private static int ToMinutes(long seconds) => (int)Math.Round(seconds / 60.0);
+
+    private static int? ToMinutes(long? seconds) => seconds is { } value ? ToMinutes(value) : null;
 
     private static int? PositiveOrNull(long value) => value > 0 ? (int)value : null;
 

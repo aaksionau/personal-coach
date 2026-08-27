@@ -69,15 +69,12 @@ public static class GarminContextFormatter
 
         builder.Append("- Sleep: ").Append(FormatHoursMinutes(total));
 
-        var stages = new List<string>(4);
+        List<string> stages = [];
         if (metric.DeepSleepMinutes is { } deep) stages.Add($"deep {FormatHoursMinutes(deep)}");
         if (metric.RemSleepMinutes is { } rem) stages.Add($"REM {FormatHoursMinutes(rem)}");
         if (metric.LightSleepMinutes is { } light) stages.Add($"light {FormatHoursMinutes(light)}");
         if (metric.AwakeMinutes is { } awake) stages.Add($"awake {FormatHoursMinutes(awake)}");
-        if (stages.Count > 0)
-        {
-            builder.Append(" (").Append(string.Join(", ", stages)).Append(')');
-        }
+        AppendParenthesized(builder, stages);
 
         if (metric.SleepScore is { } score)
         {
@@ -114,13 +111,10 @@ public static class GarminContextFormatter
             .Append(metric.BodyBatteryLow is { } lo ? lo.ToString() : "?").Append('-')
             .Append(metric.BodyBatteryHigh is { } hi ? hi.ToString() : "?");
 
-        var deltas = new List<string>(2);
+        List<string> deltas = [];
         if (metric.BodyBatteryCharged is { } charged) deltas.Add($"+{charged} charged");
         if (metric.BodyBatteryDrained is { } drained) deltas.Add($"-{drained} drained");
-        if (deltas.Count > 0)
-        {
-            builder.Append(" (").Append(string.Join(", ", deltas)).Append(')');
-        }
+        AppendParenthesized(builder, deltas);
 
         builder.Append('\n');
     }
@@ -150,7 +144,7 @@ public static class GarminContextFormatter
         {
             builder.Append("  - ").Append(activity.Name).Append(" (").Append(activity.ActivityType).Append(')');
 
-            var parts = new List<string>(2);
+            List<string> parts = [];
             if (activity.DurationMinutes is { } minutes) parts.Add(FormatHoursMinutes(minutes));
             if (activity.DistanceMeters is { } meters and > 0) parts.Add($"{meters / 1000.0:0.0} km");
             if (parts.Count > 0)
@@ -159,6 +153,15 @@ public static class GarminContextFormatter
             }
 
             builder.Append('\n');
+        }
+    }
+
+    /// <summary>Appends <c>" (a, b, c)"</c> for a non-empty list of sub-readings; nothing when empty.</summary>
+    private static void AppendParenthesized(StringBuilder builder, List<string> parts)
+    {
+        if (parts.Count > 0)
+        {
+            builder.Append(" (").Append(string.Join(", ", parts)).Append(')');
         }
     }
 
