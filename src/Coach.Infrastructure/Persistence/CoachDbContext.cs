@@ -18,6 +18,10 @@ public sealed class CoachDbContext(DbContextOptions<CoachDbContext> options, Coa
 
     public DbSet<Reflection> Reflections => Set<Reflection>();
 
+    // Global, not coach-scoped (no CoachSlug/FK); single row keyed by ValuesProfile.SingletonId.
+    // Id is the PK by convention and Content maps to unbounded text, so no OnModelCreating block.
+    public DbSet<ValuesProfile> ValuesProfiles => Set<ValuesProfile>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<CoachEntity>(entity =>

@@ -24,9 +24,9 @@
                     </a>
                 }
             </div>
-            @if (_persona is not null)
-            {
-                <nav class="flex items-center gap-1 text-sm font-medium">
+            <nav class="flex items-center gap-1 text-sm font-medium">
+                @if (_persona is not null)
+                {
                     <NavLink
                         href="@_persona.Slug"
                         Match="NavLinkMatch.All"
@@ -46,8 +46,15 @@
                         ActiveClass="bg-slate-900! text-white! hover:bg-slate-900!">
                         Reflections
                     </NavLink>
-                </nav>
-            }
+                }
+                <NavLink
+                    href="values"
+                    Match="NavLinkMatch.Prefix"
+                    class="rounded-full px-3 py-1.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                    ActiveClass="bg-slate-900! text-white! hover:bg-slate-900!">
+                    Values
+                </NavLink>
+            </nav>
         </div>
     </header>
 
