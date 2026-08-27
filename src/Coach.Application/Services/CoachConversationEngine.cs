@@ -30,7 +30,8 @@ public sealed class CoachConversationEngine(
         var systemPrompt = context.Persona.SystemPrompt
             + "\n\n" + ValuesContextFormatter.Format(context.ValuesProfile)
             + "\n\n" + GoalContextFormatter.Format(context.Goals)
-            + "\n\n" + ReflectionContextFormatter.Format(context.Reflections);
+            + "\n\n" + ReflectionContextFormatter.Format(context.Reflections)
+            + "\n\n" + CrossCoachContextFormatter.Format(context.CrossCoachSnapshots);
 
         var messages = new List<ChatMessage>(context.RecentMessages.Count + 2) { new(ChatRole.System, systemPrompt) };
         messages.AddRange(context.RecentMessages.Select(ToAiChatMessage));

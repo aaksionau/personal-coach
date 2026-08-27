@@ -1,0 +1,72 @@
+using Coach.Application.Models;
+using Coach.Application.Services;
+using Coach.Domain.Entities;
+using Coach.Domain.Enums;
+
+namespace Coach.Application.Tests;
+
+public class CrossCoachContextFormatterTests
+{
+    [Fact]
+    public void Format_ReturnsAPlaceholder_WhenNoOtherCoachHasAnything()
+    {
+        var snapshots = new[]
+        {
+            new CrossCoachSnapshot("Health Coach", [], []),
+            new CrossCoachSnapshot("Kids Coach", [], []),
+        };
+
+        var result = CrossCoachContextFormatter.Format(snapshots);
+
+        Assert.Equal("The user's other coaches: nothing tracked yet.", result);
+    }
+
+    [Fact]
+    public void Format_SummarisesEachOtherCoachsGoalsAndReflections_WithoutIds()
+    {
+        var healthGoal = Goal.Create("health", "Sleep 8 hours");
+        var openItem = ActionItem.Create(healthGoal.Id, "No screens after 22:00", null);
+        var doneItem = ActionItem.Create(healthGoal.Id, "Buy blackout curtains", null);
+        doneItem.Status = ActionItemStatus.Done;
+        var healthReflection = new Reflection
+        {
+            Id = Guid.NewGuid(),
+            CoachSlug = "health",
+            Content = "I skip workouts when work runs late.",
+            CreatedAtUtc = new DateTimeOffset(2026, 8, 22, 7, 0, 0, TimeSpan.Zero),
+        };
+
+        var snapshots = new[]
+        {
+            new CrossCoachSnapshot(
+                "Health Coach",
+                [new GoalWithActionItems(healthGoal, [openItem, doneItem])],
+                [healthReflection]),
+            new CrossCoachSnapshot("Kids Coach", [], []),
+        };
+
+        var result = CrossCoachContextFormatter.Format(snapshots);
+
+        Assert.Contains("Health Coach:", result);
+        Assert.Contains("  - Sleep 8 hours (1 open action item)", result);
+        Assert.Contains("  - (2026-08-22) I skip workouts when work runs late.", result);
+        Assert.DoesNotContain(healthGoal.Id.ToString(), result);
+        Assert.DoesNotContain("Kids Coach", result);
+    }
+
+    [Fact]
+    public void Format_OmitsTheReflectionsHeading_WhenACoachHasGoalsButNoReflections()
+    {
+        var goal = Goal.Create("relationships", "Weekly date night");
+
+        var snapshots = new[]
+        {
+            new CrossCoachSnapshot("Relationships Coach", [new GoalWithActionItems(goal, [])], []),
+        };
+
+        var result = CrossCoachContextFormatter.Format(snapshots);
+
+        Assert.Contains("  Goals:", result);
+        Assert.DoesNotContain("Recent reflections:", result);
+    }
+}

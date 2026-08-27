@@ -9,6 +9,11 @@ public sealed class FakeReflectionStore : IReflectionStore
 
     public IReadOnlyList<Reflection> Added => _reflections;
 
+    private readonly List<string> _requestedCoachSlugs = [];
+
+    /// <summary>Every coach slug <see cref="GetRecentAsync"/> has been called with, in call order -- the builder now reads several coaches' reflections per turn.</summary>
+    public IReadOnlyList<string> RequestedCoachSlugs => _requestedCoachSlugs;
+
     public string? LastRequestedCoachSlug { get; private set; }
 
     public int? LastRequestedCount { get; private set; }
@@ -21,6 +26,7 @@ public sealed class FakeReflectionStore : IReflectionStore
 
     public Task<IReadOnlyList<Reflection>> GetRecentAsync(string coachSlug, int count, CancellationToken cancellationToken)
     {
+        _requestedCoachSlugs.Add(coachSlug);
         LastRequestedCoachSlug = coachSlug;
         LastRequestedCount = count;
 
