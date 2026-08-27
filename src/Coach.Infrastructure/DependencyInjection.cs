@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Coach.Infrastructure;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IGoalStore, GoalStore>();
         services.AddScoped<IReflectionStore, ReflectionStore>();
         services.AddScoped<IValuesProfileStore, ValuesProfileStore>();
+        services.AddScoped<IGarminMetricsStore, GarminMetricsStore>();
 
         services.Configure<AzureAiOptions>(configuration.GetSection(AzureAiOptions.SectionName));
         // Falls back to placeholder values when unconfigured, matching the CoachDb connection
@@ -52,6 +54,27 @@ public static class DependencyInjection
         });
 
         return services;
+    }
+
+    /// <summary>
+    /// Applies pending EF migrations best-effort: an unreachable Postgres at startup is logged, not
+    /// fatal, so a transient outage doesn't take the process down. Shared by Coach.Web and the
+    /// Garmin ingestion job -- a genuinely broken schema still surfaces on the first real query.
+    /// </summary>
+    public static async Task MigrateCoachDbBestEffortAsync(
+        this IServiceProvider services, CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+        try
+        {
+            await scope.ServiceProvider.GetRequiredService<CoachDbContext>().Database.MigrateAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("Coach.Infrastructure.Migrations")
+                .LogWarning(ex, "Failed to apply Coach database migrations at startup.");
+        }
     }
 
     private static string OrDefault(string? value, string fallback) =>

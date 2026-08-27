@@ -27,6 +27,16 @@ src/
                           Read-only Google Calendar adapter (implements
                           Application's ICalendarReader). Standalone so the
                           Google.Apis dependency stays out of Coach.Infrastructure.
+  Coach.Infrastructure.Garmin/
+                          Garmin Connect adapter (implements Application's
+                          IGarminMetricsReader). Standalone so the
+                          Unofficial.Garmin.Connect dependency stays out of
+                          Coach.Infrastructure.
+  Coach.GarminIngestion/  Standalone console app run as a daily k8s CronJob: logs
+                          into Garmin Connect, writes a daily metric record to the
+                          coach Postgres, exits. Isolated from Coach.Web so a broken
+                          Garmin login can't degrade chat. See
+                          docs/garmin-ingestion-setup.md.
   Coach.Web/              Blazor Server UI + composition root (Program.cs). Depends
                           on Application + Infrastructure + Infrastructure.GoogleCalendar.
 tests/
@@ -37,6 +47,15 @@ tests/
                              xUnit tests for the calendar adapter's date-range
                              handling and Google response normalization, against a
                              faked API client (no network).
+  Coach.Infrastructure.Garmin.Tests/
+                             xUnit tests for the Garmin adapter's response-shape
+                             mapping into the daily-metric record and the
+                             collector's config/error handling, against a faked
+                             Garmin client (no network).
+  Coach.GarminIngestion.Tests/
+                             xUnit tests for the ingestion job's day window and
+                             its exit code on a Garmin failure, against faked
+                             reader/store.
 scripts/
   build-web-assets.ps1   Local-dev helper: builds Tailwind CSS + vendors Alpine.js
                           into wwwroot so `dotnet run` works without Docker.
@@ -62,6 +81,12 @@ Optionally configure `GoogleCalendar:ClientId` / `GoogleCalendar:ClientSecret` /
 events into every coach's context — see `docs/google-calendar-setup.md` for the
 one-time OAuth steps. Without them the calendar slice is simply empty.
 
+The Health coach also sees the latest daily Garmin metrics, populated by the
+separate `Coach.GarminIngestion` CronJob (`Garmin:Email` / `Garmin:Password`,
+sharing `ConnectionStrings:CoachDb`). Run it locally with
+`dotnet run --project src/Coach.GarminIngestion`. See
+`docs/garmin-ingestion-setup.md`.
+
 EF Core migrations apply automatically at startup (best-effort — a failure is logged,
 not fatal). To add a new migration:
 
@@ -77,10 +102,16 @@ dotnet test
 
 ## Deploying
 
-Images are built from `src/Coach.Web/Dockerfile` with the repo root as the Docker
-build context (`docker build -f src/Coach.Web/Dockerfile .`), since the app now
-references sibling projects under `src/`. Tailwind CSS is compiled via the standalone
-CLI (no Node.js). The image deploys to the `coach` namespace on the home k3s cluster
-via the `04-coach-platform` Terraform module and `upgrade-coach.sh` script in the
-sibling `home-server` repo — that script's `docker build` invocation needs to match
-the repo-root build context above.
+Two images, both built with the repo root as the Docker build context (they
+reference sibling projects under `src/`):
+
+- `coach-web` from `src/Coach.Web/Dockerfile` (`docker build -f src/Coach.Web/Dockerfile .`).
+  Tailwind CSS is compiled via the standalone CLI (no Node.js).
+- `coach-garmin-ingestion` from `src/Coach.GarminIngestion/Dockerfile`
+  (`docker build -f src/Coach.GarminIngestion/Dockerfile .`) — the daily Garmin
+  ingestion CronJob.
+
+Both deploy to the `coach` namespace on the home k3s cluster via the
+`04-coach-platform` Terraform module and `upgrade-coach.sh` script in the sibling
+`home-server` repo — that script's `docker build` invocations need to match the
+repo-root build context above.

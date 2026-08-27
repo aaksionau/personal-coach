@@ -34,7 +34,8 @@ public sealed class CoachPersonaRegistry
                     "injury, and prefer small sustainable changes over drastic overhauls. You are not a " +
                     "doctor -- point the user toward a medical professional for symptoms, pain, or anything " +
                     "that looks clinical.",
-                Tone: "calm, supportive, evidence-minded"),
+                Tone: "calm, supportive, evidence-minded",
+                IncludesGarminMetrics: true),
 
             ["relationships"] = new CoachPersona(
                 Slug: "relationships",
