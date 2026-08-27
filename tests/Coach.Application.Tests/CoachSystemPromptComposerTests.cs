@@ -30,7 +30,21 @@ public class CoachSystemPromptComposerTests
         Assert.Contains("Protect 7 hours of sleep", prompt);
     }
 
+    [Fact]
+    public void Compose_CarriesUpcomingCalendarEvents_SoTheCoachCanAccountForTheSchedule()
+    {
+        var context = ContextFor(
+            new CoachPersona("career", "Career Coach", "You are the user's career coach.", "direct"),
+            upcomingEvents: [new CalendarEvent("On-site interview", new DateTimeOffset(2026, 9, 2, 14, 0, 0, TimeSpan.Zero), null, IsAllDay: false, Location: null)]);
+
+        var prompt = CoachSystemPromptComposer.Compose(context);
+
+        Assert.Contains("On-site interview", prompt);
+    }
+
     private static CoachContext ContextFor(
-        CoachPersona persona, IReadOnlyList<CoachTrackedState>? otherCoachStates = null) =>
-        new(persona, [], new CoachTrackedState(persona.Name, [], []), ValuesProfile: null, otherCoachStates ?? []);
+        CoachPersona persona,
+        IReadOnlyList<CoachTrackedState>? otherCoachStates = null,
+        IReadOnlyList<CalendarEvent>? upcomingEvents = null) =>
+        new(persona, [], new CoachTrackedState(persona.Name, [], []), ValuesProfile: null, otherCoachStates ?? [], upcomingEvents ?? []);
 }
