@@ -46,5 +46,5 @@ public class CoachSystemPromptComposerTests
         CoachPersona persona,
         IReadOnlyList<CoachTrackedState>? otherCoachStates = null,
         IReadOnlyList<CalendarEvent>? upcomingEvents = null) =>
-        new(persona, [], new CoachTrackedState(persona.Name, [], []), ValuesProfile: null, otherCoachStates ?? [], upcomingEvents ?? [], CalendarLookaheadDays: 7);
+        new(persona, [], new CoachTrackedState(persona.Name, [], []), ValuesProfile: null, otherCoachStates ?? [], upcomingEvents ?? []);
 }

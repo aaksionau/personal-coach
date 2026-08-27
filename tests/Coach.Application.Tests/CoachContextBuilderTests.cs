@@ -1,4 +1,5 @@
 using Coach.Application.Builders;
+using Coach.Application.Models;
 using Coach.Application.Services;
 using Coach.Application.Tests.Fakes;
 using Coach.Domain.Entities;
@@ -152,7 +153,7 @@ public class CoachContextBuilderTests
         {
             EventsToReturn =
             [
-                new Coach.Application.Models.CalendarEvent(
+                new CalendarEvent(
                     "Dentist", DateTimeOffset.UtcNow.AddDays(2), DateTimeOffset.UtcNow.AddDays(2).AddHours(1), IsAllDay: false, Location: null),
             ],
         };
@@ -167,6 +168,6 @@ public class CoachContextBuilderTests
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
         Assert.Equal("Dentist", Assert.Single(context.UpcomingEvents).Title);
-        Assert.Equal(context.CalendarLookaheadDays, calendarReader.LastRequestedWithinDays);
+        Assert.Equal(CoachContext.CalendarLookaheadDays, calendarReader.LastRequestedWithinDays);
     }
 }

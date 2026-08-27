@@ -9,5 +9,9 @@ public sealed record CoachContext(
     CoachTrackedState OwnState,
     ValuesProfile? ValuesProfile,
     IReadOnlyList<CoachTrackedState> OtherCoachStates,
-    IReadOnlyList<CalendarEvent> UpcomingEvents,
-    int CalendarLookaheadDays);
+    IReadOnlyList<CalendarEvent> UpcomingEvents)
+{
+    /// <summary>How far ahead a coach's context looks for calendar events -- the single source shared
+    /// by the builder's fetch window and the formatter's "next N days" prose so the two can't drift.</summary>
+    public const int CalendarLookaheadDays = 7;
+}

@@ -11,8 +11,9 @@ namespace Coach.Application.Formatters;
 /// </summary>
 public static class CalendarContextFormatter
 {
-    public static string Format(IReadOnlyList<CalendarEvent> events, int withinDays)
+    public static string Format(IReadOnlyList<CalendarEvent> events)
     {
+        var withinDays = CoachContext.CalendarLookaheadDays;
         if (events.Count == 0)
         {
             return $"Upcoming calendar events: none in the next {withinDays} days.";

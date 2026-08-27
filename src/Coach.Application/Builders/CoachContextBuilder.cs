@@ -22,9 +22,6 @@ public sealed class CoachContextBuilder(
     private const int RecentMessageWindow = 20;
     private const int OwnReflectionWindow = 10;
 
-    /// <summary>How far ahead a coach's context looks for calendar events; carried on the built <see cref="CoachContext"/> so the prompt text and the fetch window stay in step.</summary>
-    private const int CalendarLookaheadDays = 7;
-
     /// <summary>Reflections per other coach -- a terser window than a coach's own, since this is background awareness, not the working record.</summary>
     private const int OtherCoachReflectionWindow = 3;
 
@@ -39,7 +36,7 @@ public sealed class CoachContextBuilder(
         var valuesProfileTask = valuesProfileService.GetProfileAsync(cancellationToken);
         var ownStateTask = BuildTrackedStateAsync(persona, OwnReflectionWindow, cancellationToken);
         var otherStatesTask = BuildOtherCoachStatesAsync(coachSlug, cancellationToken);
-        var upcomingEventsTask = calendarReader.GetUpcomingEventsAsync(CalendarLookaheadDays, cancellationToken);
+        var upcomingEventsTask = calendarReader.GetUpcomingEventsAsync(CoachContext.CalendarLookaheadDays, cancellationToken);
         await Task.WhenAll(recentMessagesTask, valuesProfileTask, ownStateTask, otherStatesTask, upcomingEventsTask);
 
         return new CoachContext(
@@ -48,8 +45,7 @@ public sealed class CoachContextBuilder(
             ownStateTask.Result,
             valuesProfileTask.Result,
             otherStatesTask.Result,
-            upcomingEventsTask.Result,
-            CalendarLookaheadDays);
+            upcomingEventsTask.Result);
     }
 
     /// <summary>

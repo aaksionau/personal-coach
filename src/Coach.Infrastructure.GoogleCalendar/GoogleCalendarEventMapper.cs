@@ -30,23 +30,29 @@ internal static class GoogleCalendarEventMapper
                 continue;
             }
 
-            if (!TryResolveStart(item.Start, calendarZone, out var start, out var isAllDay))
+            if (!TryResolve(item.Start, calendarZone, out var start, out var isAllDay))
             {
                 continue;
             }
 
             var title = string.IsNullOrWhiteSpace(item.Summary) ? "(no title)" : item.Summary.Trim();
             var location = string.IsNullOrWhiteSpace(item.Location) ? null : item.Location.Trim();
-            events.Add(new CalendarEvent(title, start, ResolveEnd(item.End, isAllDay, calendarZone), isAllDay, location));
+            var end = TryResolve(item.End, calendarZone, out var endValue, out _) ? endValue : (DateTimeOffset?)null;
+            events.Add(new CalendarEvent(title, start, end, isAllDay, location));
         }
 
         events.Sort(static (left, right) => left.Start.CompareTo(right.Start));
         return events;
     }
 
-    private static bool TryResolveStart(EventDateTime? when, TimeZoneInfo calendarZone, out DateTimeOffset start, out bool isAllDay)
+    /// <summary>
+    /// Resolves one <see cref="EventDateTime"/> endpoint: a timed instant when Google gives one, else
+    /// the date-only all-day value anchored to midnight in the calendar's zone. False when neither is
+    /// present. Used for both the start (which must resolve) and the optional end.
+    /// </summary>
+    private static bool TryResolve(EventDateTime? when, TimeZoneInfo calendarZone, out DateTimeOffset value, out bool isAllDay)
     {
-        start = default;
+        value = default;
         isAllDay = false;
 
         if (when is null)
@@ -56,33 +62,18 @@ internal static class GoogleCalendarEventMapper
 
         if (when.DateTimeDateTimeOffset is { } timed)
         {
-            start = timed;
+            value = timed;
             return true;
         }
 
         if (TryParseAllDayDate(when.Date, calendarZone, out var date))
         {
-            start = date;
+            value = date;
             isAllDay = true;
             return true;
         }
 
         return false;
-    }
-
-    private static DateTimeOffset? ResolveEnd(EventDateTime? when, bool isAllDay, TimeZoneInfo calendarZone)
-    {
-        if (when is null)
-        {
-            return null;
-        }
-
-        if (when.DateTimeDateTimeOffset is { } timed)
-        {
-            return timed;
-        }
-
-        return isAllDay && TryParseAllDayDate(when.Date, calendarZone, out var date) ? date : null;
     }
 
     private static bool TryParseAllDayDate(string? value, TimeZoneInfo calendarZone, out DateTimeOffset date)
