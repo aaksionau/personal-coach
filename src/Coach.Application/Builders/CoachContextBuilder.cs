@@ -29,10 +29,7 @@ public sealed class CoachContextBuilder(
 
     public async Task<CoachContext> BuildAsync(string coachSlug, CancellationToken cancellationToken)
     {
-        if (!personaRegistry.TryGet(coachSlug, out var persona))
-        {
-            throw new ArgumentException($"No coach persona registered for slug '{coachSlug}'.", nameof(coachSlug));
-        }
+        var persona = personaRegistry.Get(coachSlug);
 
         var recentMessagesTask = chatMessageStore.GetRecentAsync(coachSlug, RecentMessageWindow, cancellationToken);
         var valuesProfileTask = valuesProfileService.GetProfileAsync(cancellationToken);

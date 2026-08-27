@@ -5,69 +5,31 @@ using Microsoft.Extensions.Options;
 namespace Coach.Web.BackgroundServices;
 
 /// <summary>
-/// The weekly check-in scheduler: once a week at the configured local day/time it has
+/// The weekly trigger of the Check-in Scheduler: once a week at the configured local day/time it has
 /// <see cref="WeeklyDigestService"/> generate one consolidated digest across all four coaches and
-/// sends it through <see cref="ISmsNotifier"/>. Thin orchestration over already-tested pieces (the
-/// next-fire arithmetic lives in <see cref="DigestSchedule"/>, which is tested; the delay loop and
-/// model call carry no tests of their own); a failed run is logged and the loop simply waits for
-/// next week rather than crashing the app.
+/// sends it through <see cref="ISmsNotifier"/>. The delay loop, DST handling and failed-run posture
+/// live in <see cref="CheckInScheduler{TOptions}"/>; the model call carries no tests of its own.
 /// </summary>
 internal sealed class WeeklyDigestScheduler(
     IServiceScopeFactory scopeFactory,
     IOptions<DigestOptions> options,
-    ILogger<WeeklyDigestScheduler> logger) : BackgroundService
+    ILogger<WeeklyDigestScheduler> logger)
+    : CheckInScheduler<DigestOptions>(scopeFactory, options, logger)
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override string ConfigSectionName => DigestOptions.SectionName;
+
+    protected override string TriggerName => "weekly digest";
+
+    protected override DateTimeOffset NextRun(DateTimeOffset nowUtc, TimeZoneInfo timeZone) =>
+        CheckInSchedule.NextOccurrenceUtc(nowUtc, timeZone, Settings.DayOfWeek, Settings.TimeOfDay);
+
+    protected override async Task RunAsync(IServiceScope scope, TimeZoneInfo timeZone, CancellationToken cancellationToken)
     {
-        var settings = options.Value;
-        if (!settings.Enabled)
-        {
-            logger.LogInformation("Weekly digest scheduler is disabled (Digest:Enabled = false).");
-            return;
-        }
+        var digestService = scope.ServiceProvider.GetRequiredService<WeeklyDigestService>();
+        var smsNotifier = scope.ServiceProvider.GetRequiredService<ISmsNotifier>();
 
-        var timeZone = DigestSchedule.ResolveTimeZone(
-            settings.TimeZoneId,
-            id => logger.LogWarning("Digest:TimeZoneId '{TimeZoneId}' not found; scheduling in UTC instead.", id));
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            var now = DateTimeOffset.UtcNow;
-            var nextRun = DigestSchedule.NextOccurrenceUtc(now, timeZone, settings.DayOfWeek, settings.TimeOfDay);
-            logger.LogInformation("Next weekly digest scheduled for {NextRun:u}.", nextRun);
-
-            try
-            {
-                await Task.Delay(nextRun - now, stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-
-            await SendDigestAsync(stoppingToken);
-        }
-    }
-
-    private async Task SendDigestAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var digestService = scope.ServiceProvider.GetRequiredService<WeeklyDigestService>();
-            var smsNotifier = scope.ServiceProvider.GetRequiredService<ISmsNotifier>();
-
-            var digest = await digestService.GenerateAsync(cancellationToken);
-            await smsNotifier.SendAsync(digest, cancellationToken);
-            logger.LogInformation("Sent weekly check-in digest ({Length} chars).", digest.Length);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Weekly check-in digest failed; will retry at the next scheduled time.");
-        }
+        var digest = await digestService.GenerateAsync(cancellationToken);
+        await smsNotifier.SendAsync(digest, cancellationToken);
+        Logger.LogInformation("Sent weekly check-in digest ({Length} chars).", digest.Length);
     }
 }
