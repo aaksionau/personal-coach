@@ -2,7 +2,7 @@ using System.Text;
 using Coach.Application.Models;
 using Coach.Domain.Entities;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Formatters;
 
 /// <summary>
 /// Formats the other coaches' tracked state as text for the model's system prompt: a terse, id-free

@@ -1,3 +1,4 @@
+using Coach.Application.Builders;
 using Coach.Application.Services;
 using Coach.Application.Tests.Fakes;
 using Coach.Domain.Entities;

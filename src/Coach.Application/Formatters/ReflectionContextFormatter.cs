@@ -1,7 +1,7 @@
 using System.Text;
 using Coach.Domain.Entities;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Formatters;
 
 /// <summary>
 /// Formats recent reflections as text for the model's system prompt -- oldest first, each dated so

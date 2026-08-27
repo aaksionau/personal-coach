@@ -1,4 +1,5 @@
 using Coach.Application.Services;
+using Coach.Application.Tools;
 using Coach.Application.Tests.Fakes;
 using Coach.Domain.Enums;
 using Microsoft.Extensions.AI;

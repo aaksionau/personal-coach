@@ -1,6 +1,6 @@
 using Coach.Domain.Entities;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Formatters;
 
 /// <summary>
 /// Formats the user's values profile as text for the model's system prompt. The counterpart to

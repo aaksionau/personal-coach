@@ -1,4 +1,4 @@
-using Coach.Application.Services;
+using Coach.Application.Formatters;
 using Coach.Domain.Entities;
 
 namespace Coach.Application.Tests;

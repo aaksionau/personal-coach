@@ -1,7 +1,8 @@
 using System.ComponentModel;
+using Coach.Application.Services;
 using Microsoft.Extensions.AI;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Tools;
 
 /// <summary>
 /// Reflection actions offered to the model as tools for one turn, scoped to a single coach slug.

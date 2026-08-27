@@ -1,13 +1,14 @@
 using System.ComponentModel;
+using Coach.Application.Services;
 using Microsoft.Extensions.AI;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Tools;
 
 /// <summary>
 /// The one action the values wizard offers the model: distil the interview into a values summary
 /// and save it. Mirrors <see cref="ReflectionTools"/> -- a plain typed method wrapped by
 /// <see cref="AIFunctionFactory"/>. Not coach-scoped: the values profile is global.
-/// <see cref="Saved"/> lets <see cref="ValuesWizardService"/> tell whether the model completed the
+/// <see cref="Saved"/> lets <see cref="Coach.Application.Agents.ValuesWizardService"/> tell whether the model completed the
 /// wizard on a given turn.
 /// </summary>
 public sealed class ValuesProfileTools(ValuesProfileService valuesProfileService)

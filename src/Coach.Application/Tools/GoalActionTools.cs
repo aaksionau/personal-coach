@@ -1,8 +1,9 @@
 using System.ComponentModel;
+using Coach.Application.Services;
 using Coach.Domain.Enums;
 using Microsoft.Extensions.AI;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Tools;
 
 /// <summary>
 /// Goal Tracking actions offered to the model as tools for one turn, scoped to a single coach

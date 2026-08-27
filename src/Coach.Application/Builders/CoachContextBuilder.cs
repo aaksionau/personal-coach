@@ -1,7 +1,8 @@
 using Coach.Application.Interfaces;
 using Coach.Application.Models;
+using Coach.Application.Services;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Builders;
 
 /// <summary>
 /// Assembles the context bundle for a coach call. v1 includes the persona, a recent message

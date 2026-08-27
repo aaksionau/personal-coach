@@ -1,4 +1,4 @@
-namespace Coach.Application.Services;
+namespace Coach.Application.Tools;
 
 /// <summary>
 /// Shared guard for model tool methods. Tool-call arguments are untrusted model output -- the model

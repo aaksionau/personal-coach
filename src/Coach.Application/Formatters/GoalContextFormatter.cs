@@ -3,7 +3,7 @@ using Coach.Application.Models;
 using Coach.Domain.Entities;
 using Coach.Domain.Enums;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Formatters;
 
 /// <summary>
 /// Formats current goal/action-item state as text for the model's system prompt, including ids so

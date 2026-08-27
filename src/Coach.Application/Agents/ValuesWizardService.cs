@@ -1,8 +1,10 @@
 using Coach.Application.Models;
+using Coach.Application.Services;
+using Coach.Application.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Agents;
 
 /// <summary>
 /// Drives the one-time guided values wizard: the model interviews the user, then distils and saves

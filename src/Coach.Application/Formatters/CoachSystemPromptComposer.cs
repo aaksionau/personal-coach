@@ -1,11 +1,11 @@
 using Coach.Application.Models;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Formatters;
 
 /// <summary>
 /// Assembles the system prompt for a coach turn from an already-built <see cref="CoachContext"/>:
 /// the persona instructions followed by the values, goal, reflection, and cross-coach slices, each
-/// rendered by its own formatter. Split out from <see cref="CoachConversationEngine"/> so the
+/// rendered by its own formatter. Split out from <see cref="Coach.Application.Agents.CoachConversationEngine"/> so the
 /// prompt assembly -- including that another coach's state actually reaches the model -- is testable
 /// without a model call.
 /// </summary>

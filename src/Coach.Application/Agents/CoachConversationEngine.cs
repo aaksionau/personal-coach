@@ -1,11 +1,15 @@
+using Coach.Application.Builders;
+using Coach.Application.Formatters;
 using Coach.Application.Interfaces;
 using Coach.Application.Models;
+using Coach.Application.Services;
+using Coach.Application.Tools;
 using Coach.Domain.Enums;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using DomainChatMessage = Coach.Domain.Entities.ChatMessage;
 
-namespace Coach.Application.Services;
+namespace Coach.Application.Agents;
 
 /// <summary>
 /// Drives one chat turn: builds context, persists the user's message, calls the model deployment

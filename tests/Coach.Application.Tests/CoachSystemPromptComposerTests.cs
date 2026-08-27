@@ -1,5 +1,5 @@
+using Coach.Application.Formatters;
 using Coach.Application.Models;
-using Coach.Application.Services;
 using Coach.Domain.Entities;
 
 namespace Coach.Application.Tests;
