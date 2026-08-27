@@ -1,3 +1,4 @@
+using Coach.Application.Models;
 using global::Garmin.Connect.Models;
 
 namespace Coach.Infrastructure.Garmin.Tests;
@@ -5,6 +6,10 @@ namespace Coach.Infrastructure.Garmin.Tests;
 public class GarminDailyMetricMapperTests
 {
     private static readonly DateOnly Date = new(2026, 8, 26);
+    private static readonly DateTimeOffset Ingested = new(2026, 8, 27, 6, 0, 0, TimeSpan.Zero);
+
+    private static GarminMetricsSnapshot Map(GarminDaySnapshot snapshot) =>
+        GarminDailyMetricMapper.Map(Date, snapshot, Ingested);
 
     [Fact]
     public void Map_ProjectsEveryDailySummaryField()
@@ -35,9 +40,10 @@ public class GarminDailyMetricMapperTests
             }),
             []);
 
-        var metric = GarminDailyMetricMapper.Map(Date, snapshot).Metric;
+        var metric = Map(snapshot).Metric;
 
         Assert.Equal(Date, metric.Date);
+        Assert.Equal(Ingested, metric.IngestedAtUtc);
         Assert.Equal(8421, metric.Steps);
         Assert.Equal(10000, metric.StepGoal);
         Assert.Equal(52, metric.RestingHeartRateBpm);
@@ -86,7 +92,7 @@ public class GarminDailyMetricMapperTests
                 },
             ]);
 
-        var activities = GarminDailyMetricMapper.Map(Date, snapshot).Activities;
+        var activities = Map(snapshot).Activities;
 
         Assert.Collection(
             activities,
@@ -112,7 +118,7 @@ public class GarminDailyMetricMapperTests
     [Fact]
     public void Map_LeavesFieldsNull_WhenGarminHasNoDataForTheDay()
     {
-        var metric = GarminDailyMetricMapper.Map(Date, new GarminDaySnapshot(null, null, [])).Metric;
+        var metric = Map(new GarminDaySnapshot(null, null, [])).Metric;
 
         Assert.Null(metric.Steps);
         Assert.Null(metric.RestingHeartRateBpm);
@@ -120,7 +126,7 @@ public class GarminDailyMetricMapperTests
         Assert.Null(metric.SleepScore);
         Assert.Null(metric.AverageStressLevel);
         Assert.Null(metric.BodyBatteryHigh);
-        Assert.Empty(GarminDailyMetricMapper.Map(Date, new GarminDaySnapshot(null, null, [])).Activities);
+        Assert.Empty(Map(new GarminDaySnapshot(null, null, [])).Activities);
     }
 
     [Fact]
@@ -138,7 +144,7 @@ public class GarminDailyMetricMapperTests
             null,
             []);
 
-        var metric = GarminDailyMetricMapper.Map(Date, snapshot).Metric;
+        var metric = Map(snapshot).Metric;
 
         Assert.Equal(0, metric.Steps);                 // a counter -- a real zero
         Assert.Equal(0, metric.BodyBatteryCharged);    // a counter -- a real zero
@@ -152,7 +158,7 @@ public class GarminDailyMetricMapperTests
     {
         var snapshot = new GarminDaySnapshot(null, new GarminSleepData(), []);
 
-        var metric = GarminDailyMetricMapper.Map(Date, snapshot).Metric;
+        var metric = Map(snapshot).Metric;
 
         Assert.Null(metric.TotalSleepMinutes);
         Assert.Null(metric.SleepScore);
@@ -175,7 +181,7 @@ public class GarminDailyMetricMapperTests
                 },
             ]);
 
-        var activity = Assert.Single(GarminDailyMetricMapper.Map(Date, snapshot).Activities);
+        var activity = Assert.Single(Map(snapshot).Activities);
 
         Assert.Equal("(unnamed activity)", activity.Name);
         Assert.Equal("unknown", activity.ActivityType);

@@ -26,7 +26,8 @@ internal sealed class GarminMetricsCollector(
         }
 
         logger.LogInformation("Fetching Garmin metrics for {Date}.", date);
-        var snapshot = GarminDailyMetricMapper.Map(date, await api.GetDayAsync(date, cancellationToken));
+        var day = await api.GetDayAsync(date, cancellationToken);
+        var snapshot = GarminDailyMetricMapper.Map(date, day, DateTimeOffset.UtcNow);
         logger.LogInformation(
             "Fetched Garmin metrics for {Date}: {Steps} steps, {Activities} activities.",
             date, snapshot.Metric.Steps, snapshot.Activities.Count);

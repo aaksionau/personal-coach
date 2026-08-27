@@ -52,6 +52,10 @@ tests/
                              mapping into the daily-metric record and the
                              collector's config/error handling, against a faked
                              Garmin client (no network).
+  Coach.GarminIngestion.Tests/
+                             xUnit tests for the ingestion job's day window and
+                             its exit code on a Garmin failure, against faked
+                             reader/store.
 scripts/
   build-web-assets.ps1   Local-dev helper: builds Tailwind CSS + vendors Alpine.js
                           into wwwroot so `dotnet run` works without Docker.

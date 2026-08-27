@@ -10,6 +10,11 @@ namespace Coach.Application.Formatters;
 /// stitched into the Health coach's prompt (see <see cref="CoachSystemPromptComposer"/>); the
 /// other three personas never see a Garmin slice. Read-only: the model is told it cannot act on
 /// these. Every line is omitted when Garmin has no reading for it, so a sparse day stays terse.
+///
+/// The header carries the ingestion time and flags an in-progress day (a row whose date matches
+/// the day it was ingested on), so the model doesn't read a half-recorded "today" -- few steps,
+/// no sleep yet -- as a complete picture. The ingestion job re-pulls the last few days each run,
+/// so the previous day's row lands complete on the next run.
 /// </summary>
 public static class GarminContextFormatter
 {
@@ -21,8 +26,13 @@ public static class GarminContextFormatter
         }
 
         var metric = snapshot.Metric;
+        var ingestedOn = DateOnly.FromDateTime(metric.IngestedAtUtc.UtcDateTime);
+        var dayNote = metric.Date >= ingestedOn
+            ? " -- today so far, still being recorded"
+            : string.Empty;
         var builder = new StringBuilder(
-            $"Latest Garmin metrics for {metric.Date:yyyy-MM-dd} (read-only -- grounding for health advice, you cannot change these):\n");
+            $"Latest Garmin metrics for {metric.Date:yyyy-MM-dd}{dayNote} "
+            + $"(ingested {metric.IngestedAtUtc.UtcDateTime:yyyy-MM-dd HH:mm} UTC; read-only -- grounding for health advice, you cannot change these):\n");
 
         if (metric.Steps is { } steps)
         {

@@ -29,8 +29,10 @@ what makes an unattended daily login possible at all.
   migration pipeline. The job's image transitively carries the Azure OpenAI SDK it
   never invokes — accepted so there is a single source of schema truth.
 - **Per-day idempotent upsert.** The job replaces a day's row (and its activity
-  children) wholesale, so re-runs and catch-up runs are safe. It pulls yesterday
-  and today each run.
+  children) wholesale in one transaction, so re-runs and catch-up runs are safe. It
+  pulls the last three days each run (`today - 2 … today`, UTC) — Garmin keys
+  summaries by the account's local date, so the window absorbs the UTC/local skew
+  and a missed run.
 - **The reader may throw.** Unlike `ICalendarReader` (which swallows failures so a
   coach turn is never blocked), `IGarminMetricsReader` surfaces failures — the
   CronJob *wants* a loud failure it can see in Job history.

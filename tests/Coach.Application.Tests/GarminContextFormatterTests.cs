@@ -86,4 +86,29 @@ public class GarminContextFormatterTests
         Assert.DoesNotContain("Body battery", text);
         Assert.Contains("Workouts: none logged.", text);
     }
+
+    [Fact]
+    public void Format_ReportsIngestionTime_AndFlagsAnInProgressDay()
+    {
+        var completeDay = GarminContextFormatter.Format(new GarminMetricsSnapshot(
+            new GarminDailyMetric
+            {
+                Date = new DateOnly(2026, 8, 26),
+                Steps = 9000,
+                IngestedAtUtc = new DateTimeOffset(2026, 8, 27, 6, 15, 0, TimeSpan.Zero),
+            },
+            []));
+        Assert.Contains("ingested 2026-08-27 06:15 UTC", completeDay);
+        Assert.DoesNotContain("still being recorded", completeDay);
+
+        var inProgressDay = GarminContextFormatter.Format(new GarminMetricsSnapshot(
+            new GarminDailyMetric
+            {
+                Date = new DateOnly(2026, 8, 27),
+                Steps = 900,
+                IngestedAtUtc = new DateTimeOffset(2026, 8, 27, 6, 15, 0, TimeSpan.Zero),
+            },
+            []));
+        Assert.Contains("today so far, still being recorded", inProgressDay);
+    }
 }

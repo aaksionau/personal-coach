@@ -1,9 +1,9 @@
 # Garmin ingestion setup
 
 `Coach.GarminIngestion` is a standalone console app deployed as a **daily
-Kubernetes CronJob**. Each run logs into Garmin Connect, pulls the previous day's
-(and the current day's) summary — steps, sleep, resting heart rate, body battery,
-stress, intensity minutes, and workouts — and upserts it into the coach Postgres.
+Kubernetes CronJob**. Each run logs into Garmin Connect, pulls the last few days'
+summaries — steps, sleep, resting heart rate, body battery, stress, intensity
+minutes, and workouts — and upserts them into the coach Postgres.
 The Health coach reads the latest row as part of its context. The main app never
 calls Garmin; a broken login or a Garmin API change fails the CronJob only, not
 chat.
@@ -13,11 +13,17 @@ chat.
 - `Coach.Infrastructure.Garmin` wraps the [`Unofficial.Garmin.Connect`](https://www.nuget.org/packages/Unofficial.Garmin.Connect)
   client behind the narrow `IGarminApi` seam; `GarminDailyMetricMapper` normalizes
   the response into the app's `GarminDailyMetric` + `GarminActivitySummary` shape.
-- The job pulls **yesterday and today** each run (yesterday is the last complete
-  day; today gives same-day chats something and is refreshed on the next run).
-- Writes are a **per-day replace**, so re-running the job — or catching up after a
-  missed run — is idempotent.
-- The job applies EF migrations best-effort at startup, like `Coach.Web`.
+- The job pulls the **last three days** each run (`today - 2 … today`, UTC).
+  Garmin keys its summaries by the account's *local* calendar date, which can sit a
+  day either side of the UTC date, so the window always covers the last complete
+  local day (the model's grounding) plus today (something for a same-day chat) with
+  a day of slack that also lets a missed run catch up.
+- Writes are a **per-day replace** inside a transaction, so re-running the job — or
+  catching up after a missed run — is idempotent, and a crash mid-write never leaves
+  a half-replaced day.
+- The composition root applies EF migrations best-effort at startup, like
+  `Coach.Web` (a failure is logged, not fatal); a genuinely broken schema still
+  surfaces when the ingestion below fails and the job exits `1`.
 - Exit code `0` on success, `1` on any failure (→ the k8s Job is marked failed;
   `Coach.Web` is unaffected).
 

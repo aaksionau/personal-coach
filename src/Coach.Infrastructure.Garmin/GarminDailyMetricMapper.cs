@@ -6,8 +6,9 @@ namespace Coach.Infrastructure.Garmin;
 
 /// <summary>
 /// Normalizes a day's raw Garmin Connect responses (<see cref="GarminDaySnapshot"/>) into the
-/// app's <see cref="GarminMetricsSnapshot"/>. Pure and network-free so it can be exercised
-/// directly in tests -- this mapping is the piece the acceptance criteria call out.
+/// app's <see cref="GarminMetricsSnapshot"/>. Pure and network-free -- the ingestion timestamp is
+/// passed in rather than read from the clock -- so it can be exercised directly in tests, the
+/// mapping the acceptance criteria call out.
 ///
 /// Rules: seconds are rounded to whole minutes; gauge readings (resting HR, stress, body-battery
 /// high/low) that come back as zero or negative are treated as "no reading" (<c>null</c>), while
@@ -16,7 +17,7 @@ namespace Coach.Infrastructure.Garmin;
 /// </summary>
 internal static class GarminDailyMetricMapper
 {
-    public static GarminMetricsSnapshot Map(DateOnly date, GarminDaySnapshot snapshot)
+    public static GarminMetricsSnapshot Map(DateOnly date, GarminDaySnapshot snapshot, DateTimeOffset ingestedAtUtc)
     {
         var summary = snapshot.Summary;
         var sleep = snapshot.Sleep?.DailySleepDto;
@@ -41,7 +42,7 @@ internal static class GarminDailyMetricMapper
             BodyBatteryDrained = summary is null ? null : (int)summary.BodyBatteryDrainedValue,
             ModerateIntensityMinutes = summary is null ? null : (int)summary.ModerateIntensityMinutes,
             VigorousIntensityMinutes = summary is null ? null : (int)summary.VigorousIntensityMinutes,
-            IngestedAtUtc = DateTimeOffset.UtcNow,
+            IngestedAtUtc = ingestedAtUtc,
         };
 
         var activities = snapshot.Activities

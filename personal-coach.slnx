@@ -12,5 +12,6 @@
     <Project Path="tests/Coach.Application.Tests/Coach.Application.Tests.csproj" />
     <Project Path="tests/Coach.Infrastructure.GoogleCalendar.Tests/Coach.Infrastructure.GoogleCalendar.Tests.csproj" />
     <Project Path="tests/Coach.Infrastructure.Garmin.Tests/Coach.Infrastructure.Garmin.Tests.csproj" />
+    <Project Path="tests/Coach.GarminIngestion.Tests/Coach.GarminIngestion.Tests.csproj" />
   </Folder>
 </Solution>
