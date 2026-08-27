@@ -14,9 +14,9 @@ public sealed class DigestOptions
 
     public DayOfWeek DayOfWeek { get; init; } = DayOfWeek.Monday;
 
-    /// <summary>Local time of day to send, in <see cref="TimeZone"/>.</summary>
+    /// <summary>Local time of day to send, in <see cref="TimeZoneId"/>.</summary>
     public TimeSpan TimeOfDay { get; init; } = new(8, 0, 0);
 
     /// <summary>IANA time zone id the schedule is expressed in. Falls back to UTC if unrecognised.</summary>
-    public string TimeZone { get; init; } = "America/Chicago";
+    public string TimeZoneId { get; init; } = "America/Chicago";
 }

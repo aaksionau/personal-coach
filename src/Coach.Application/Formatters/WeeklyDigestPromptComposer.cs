@@ -36,9 +36,7 @@ public static class WeeklyDigestPromptComposer
 
         builder.Append(ValuesContextFormatter.Format(valuesProfile)).Append("\n\n");
 
-        var populated = coachStates
-            .Where(s => s.Goals.Count > 0 || s.Reflections.Count > 0)
-            .ToList();
+        var populated = CoachTrackedStateFormatter.Populated(coachStates);
         if (populated.Count == 0)
         {
             builder.Append("Across all four coaches: nothing is being tracked yet.");
@@ -48,48 +46,12 @@ public static class WeeklyDigestPromptComposer
             builder.Append("What each coach is currently tracking:\n");
             foreach (var state in populated)
             {
-                builder.Append('\n').Append(state.CoachName).Append(":\n");
-                AppendGoals(builder, state.Goals);
-                AppendReflections(builder, state.Reflections);
+                CoachTrackedStateFormatter.AppendState(builder, state);
             }
         }
 
         builder.Append('\n').Append(CalendarContextFormatter.Format(upcomingEvents));
 
         return builder.ToString();
-    }
-
-    private static void AppendGoals(StringBuilder builder, IReadOnlyList<GoalWithActionItems> goals)
-    {
-        if (goals.Count == 0)
-        {
-            return;
-        }
-
-        builder.Append("  Goals:\n");
-        foreach (var (goal, actionItems) in goals)
-        {
-            builder.Append("  - ").Append(goal.Title).Append('\n');
-            foreach (var actionItem in actionItems)
-            {
-                GoalContextFormatter.AppendActionItemLine(builder, actionItem, "    ");
-                builder.Append('\n');
-            }
-        }
-    }
-
-    private static void AppendReflections(StringBuilder builder, IReadOnlyList<Reflection> reflections)
-    {
-        if (reflections.Count == 0)
-        {
-            return;
-        }
-
-        builder.Append("  Recent reflections:\n");
-        foreach (var reflection in reflections)
-        {
-            builder.Append("  - (").Append(reflection.CreatedAtUtc.ToString("yyyy-MM-dd")).Append(") ")
-                .Append(reflection.Content).Append('\n');
-        }
     }
 }

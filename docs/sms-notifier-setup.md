@@ -51,8 +51,8 @@ Bound from the `Sms` section (`src/Coach.Infrastructure.Sms/SmsOptions.cs`) and 
 | `Sms:SmtpPort`      | `587` (default)                                          |
 | `Digest:Enabled`    | `true` (default); `false` keeps the scheduler dormant    |
 | `Digest:DayOfWeek`  | `Monday` (default)                                       |
-| `Digest:TimeOfDay`  | `08:00:00` (default), local to `Digest:TimeZone`         |
-| `Digest:TimeZone`   | IANA id, `America/Chicago` (default); falls back to UTC  |
+| `Digest:TimeOfDay`  | `08:00:00` (default), local to `Digest:TimeZoneId`       |
+| `Digest:TimeZoneId` | IANA id, `America/Chicago` (default); falls back to UTC  |
 
 **Local dev:** the digest scheduler is disabled in `appsettings.Development.json`.
 To exercise a real send locally, set the `Sms:*` values via user-secrets and flip
@@ -68,7 +68,7 @@ dotnet user-secrets --project src/Coach.Web set "Sms:ToNumber" "..."
 Kubernetes secret in the `coach` namespace, projected as `Sms__SmtpUsername` /
 `Sms__SmtpPassword` / `Sms__ToNumber` env vars — wired via the `04-coach-platform`
 Terraform module in the sibling `home-server` repo, alongside the existing
-`AzureAi__*` and `GoogleCalendar__*` secrets. Set `Digest__TimeZone` there if
+`AzureAi__*` and `GoogleCalendar__*` secrets. Set `Digest__TimeZoneId` there if
 Central time isn't wanted.
 
 ## Notes
