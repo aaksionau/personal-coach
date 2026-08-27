@@ -17,7 +17,7 @@ public static class WeeklyDigestPromptComposer
     /// A soft ceiling passed to the model, not enforced here -- long multipart texts still deliver
     /// through the Fi gateway, but the digest is meant to be a glanceable nudge, not a report.
     /// </summary>
-    public const int TargetCharacterBudget = 400;
+    private const int TargetCharacterBudget = 400;
 
     private static readonly string Instructions =
         "You are writing the user's single weekly check-in text message. It covers all four areas of "

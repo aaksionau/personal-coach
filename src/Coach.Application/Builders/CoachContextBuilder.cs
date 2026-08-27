@@ -57,33 +57,33 @@ public sealed class CoachContextBuilder(
     }
 
     /// <summary>
-    /// Every registered coach's tracked state (goals + a recent reflection window), ordered by coach
-    /// name so the result is deterministic. Feeds the weekly digest, which summarises across all four
-    /// coaches at once rather than from any single coach's point of view. Read fresh, like the
-    /// per-turn context.
+    /// Every registered coach's tracked state (goals + a recent reflection window). Feeds the weekly
+    /// digest, which summarises across all four coaches at once rather than from any single coach's
+    /// point of view. Read fresh, like the per-turn context.
     /// </summary>
-    public async Task<IReadOnlyList<CoachTrackedState>> BuildAllTrackedStatesAsync(CancellationToken cancellationToken)
-    {
-        var personas = personaRegistry.GetAll().OrderBy(p => p.Name, StringComparer.Ordinal);
-        return await Task.WhenAll(
-            personas.Select(p => BuildTrackedStateAsync(p, OwnReflectionWindow, cancellationToken)));
-    }
+    public Task<IReadOnlyList<CoachTrackedState>> BuildAllTrackedStatesAsync(CancellationToken cancellationToken) =>
+        BuildStatesAsync(personaRegistry.GetAll(), OwnReflectionWindow, cancellationToken);
 
     /// <summary>
-    /// The other registered personas' tracked state, ordered by coach name so the assembled context
-    /// is deterministic. Read fresh here rather than cached, so a coach always sees the other
-    /// domains' current state.
+    /// The other registered personas' tracked state. Read fresh here rather than cached, so a coach
+    /// always sees the other domains' current state.
     /// </summary>
-    private async Task<IReadOnlyList<CoachTrackedState>> BuildOtherCoachStatesAsync(
-        string coachSlug, CancellationToken cancellationToken)
-    {
-        var otherPersonas = personaRegistry.GetAll()
-            .Where(p => !string.Equals(p.Slug, coachSlug, StringComparison.Ordinal))
-            .OrderBy(p => p.Name, StringComparer.Ordinal);
+    private Task<IReadOnlyList<CoachTrackedState>> BuildOtherCoachStatesAsync(
+        string coachSlug, CancellationToken cancellationToken) =>
+        BuildStatesAsync(
+            personaRegistry.GetAll().Where(p => !string.Equals(p.Slug, coachSlug, StringComparison.Ordinal)),
+            OtherCoachReflectionWindow,
+            cancellationToken);
 
-        return await Task.WhenAll(
-            otherPersonas.Select(p => BuildTrackedStateAsync(p, OtherCoachReflectionWindow, cancellationToken)));
-    }
+    /// <summary>
+    /// Fans <see cref="BuildTrackedStateAsync"/> out across <paramref name="personas"/>, ordered by
+    /// coach name so the assembled context is deterministic.
+    /// </summary>
+    private async Task<IReadOnlyList<CoachTrackedState>> BuildStatesAsync(
+        IEnumerable<CoachPersona> personas, int reflectionWindow, CancellationToken cancellationToken) =>
+        await Task.WhenAll(personas
+            .OrderBy(p => p.Name, StringComparer.Ordinal)
+            .Select(p => BuildTrackedStateAsync(p, reflectionWindow, cancellationToken)));
 
     /// <summary>One coach's goals and recent reflections -- the single seam both the own-coach and cross-coach paths read through.</summary>
     private async Task<CoachTrackedState> BuildTrackedStateAsync(
