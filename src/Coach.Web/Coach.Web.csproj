@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Coach.Application\Coach.Application.csproj" />
     <ProjectReference Include="..\Coach.Infrastructure\Coach.Infrastructure.csproj" />
+    <ProjectReference Include="..\Coach.Infrastructure.GoogleCalendar\Coach.Infrastructure.GoogleCalendar.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -30,7 +30,8 @@ public class CoachContextBuilderTests
             new CoachPersonaRegistry(),
             new GoalTrackingService(new FakeGoalStore()),
             new ReflectionService(new FakeReflectionStore()),
-            new ValuesProfileService(new FakeValuesProfileStore()));
+            new ValuesProfileService(new FakeValuesProfileStore()),
+            new FakeCalendarReader());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -47,7 +48,8 @@ public class CoachContextBuilderTests
             new CoachPersonaRegistry(),
             new GoalTrackingService(new FakeGoalStore()),
             new ReflectionService(new FakeReflectionStore()),
-            new ValuesProfileService(new FakeValuesProfileStore()));
+            new ValuesProfileService(new FakeValuesProfileStore()),
+            new FakeCalendarReader());
 
         await builder.BuildAsync("career", CancellationToken.None);
 
@@ -66,7 +68,8 @@ public class CoachContextBuilderTests
             new CoachPersonaRegistry(),
             goalService,
             new ReflectionService(new FakeReflectionStore()),
-            new ValuesProfileService(new FakeValuesProfileStore()));
+            new ValuesProfileService(new FakeValuesProfileStore()),
+            new FakeCalendarReader());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -84,7 +87,8 @@ public class CoachContextBuilderTests
             new CoachPersonaRegistry(),
             new GoalTrackingService(new FakeGoalStore()),
             reflectionService,
-            new ValuesProfileService(new FakeValuesProfileStore()));
+            new ValuesProfileService(new FakeValuesProfileStore()),
+            new FakeCalendarReader());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -107,7 +111,8 @@ public class CoachContextBuilderTests
             new CoachPersonaRegistry(),
             goalService,
             reflectionService,
-            new ValuesProfileService(new FakeValuesProfileStore()));
+            new ValuesProfileService(new FakeValuesProfileStore()),
+            new FakeCalendarReader());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -131,11 +136,37 @@ public class CoachContextBuilderTests
             new CoachPersonaRegistry(),
             new GoalTrackingService(new FakeGoalStore()),
             new ReflectionService(new FakeReflectionStore()),
-            valuesService);
+            valuesService,
+            new FakeCalendarReader());
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
         Assert.NotNull(context.ValuesProfile);
         Assert.Equal("Autonomy over title; family evenings are protected.", context.ValuesProfile!.Content);
+    }
+
+    [Fact]
+    public async Task BuildAsync_IncludesUpcomingCalendarEvents_WithoutInvokingAModel()
+    {
+        var calendarReader = new FakeCalendarReader
+        {
+            EventsToReturn =
+            [
+                new Coach.Application.Models.CalendarEvent(
+                    "Dentist", DateTimeOffset.UtcNow.AddDays(2), DateTimeOffset.UtcNow.AddDays(2).AddHours(1), IsAllDay: false, Location: null),
+            ],
+        };
+        var builder = new CoachContextBuilder(
+            new FakeChatMessageStore(),
+            new CoachPersonaRegistry(),
+            new GoalTrackingService(new FakeGoalStore()),
+            new ReflectionService(new FakeReflectionStore()),
+            new ValuesProfileService(new FakeValuesProfileStore()),
+            calendarReader);
+
+        var context = await builder.BuildAsync("career", CancellationToken.None);
+
+        Assert.Equal("Dentist", Assert.Single(context.UpcomingEvents).Title);
+        Assert.Equal(CoachContextBuilder.CalendarLookaheadDays, calendarReader.LastRequestedWithinDays);
     }
 }

@@ -1,5 +1,6 @@
 using Coach.Application;
 using Coach.Infrastructure;
+using Coach.Infrastructure.GoogleCalendar;
 using Coach.Web.Components;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddCoachApplication();
 builder.Services.AddCoachInfrastructure(builder.Configuration);
+builder.Services.AddCoachGoogleCalendar(builder.Configuration);
 
 var app = builder.Build();
 

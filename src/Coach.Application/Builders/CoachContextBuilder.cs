@@ -6,20 +6,24 @@ namespace Coach.Application.Builders;
 
 /// <summary>
 /// Assembles the context bundle for a coach call. v1 includes the persona, a recent message
-/// window, the called coach's own goal/reflection state, the user's global values profile, and the
-/// other coaches' tracked state (so one coach can account for the other domains) -- no calendar or
-/// Garmin data yet. Deliberately separate from the Conversation Engine so it's testable without a
-/// model call.
+/// window, the called coach's own goal/reflection state, the user's global values profile, the
+/// other coaches' tracked state (so one coach can account for the other domains), and the user's
+/// upcoming calendar events -- no Garmin data yet. Deliberately separate from the Conversation
+/// Engine so it's testable without a model call.
 /// </summary>
 public sealed class CoachContextBuilder(
     IChatMessageStore chatMessageStore,
     CoachPersonaRegistry personaRegistry,
     GoalTrackingService goalTrackingService,
     ReflectionService reflectionService,
-    ValuesProfileService valuesProfileService)
+    ValuesProfileService valuesProfileService,
+    ICalendarReader calendarReader)
 {
     private const int RecentMessageWindow = 20;
     private const int OwnReflectionWindow = 10;
+
+    /// <summary>How far ahead a coach's context looks for calendar events. Shared with <see cref="Formatters.CoachSystemPromptComposer"/> so the prompt text and the fetch window stay in step.</summary>
+    public const int CalendarLookaheadDays = 7;
 
     /// <summary>Reflections per other coach -- a terser window than a coach's own, since this is background awareness, not the working record.</summary>
     private const int OtherCoachReflectionWindow = 3;
@@ -35,14 +39,16 @@ public sealed class CoachContextBuilder(
         var valuesProfileTask = valuesProfileService.GetProfileAsync(cancellationToken);
         var ownStateTask = BuildTrackedStateAsync(persona, OwnReflectionWindow, cancellationToken);
         var otherStatesTask = BuildOtherCoachStatesAsync(coachSlug, cancellationToken);
-        await Task.WhenAll(recentMessagesTask, valuesProfileTask, ownStateTask, otherStatesTask);
+        var upcomingEventsTask = calendarReader.GetUpcomingEventsAsync(CalendarLookaheadDays, cancellationToken);
+        await Task.WhenAll(recentMessagesTask, valuesProfileTask, ownStateTask, otherStatesTask, upcomingEventsTask);
 
         return new CoachContext(
             persona,
             recentMessagesTask.Result,
             ownStateTask.Result,
             valuesProfileTask.Result,
-            otherStatesTask.Result);
+            otherStatesTask.Result,
+            upcomingEventsTask.Result);
     }
 
     /// <summary>

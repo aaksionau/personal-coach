@@ -23,12 +23,20 @@ src/
                           Builder, Conversation Engine), Models. Depends on Domain.
   Coach.Infrastructure/   EF Core Postgres persistence + the Azure OpenAI adapter
                           (implements Application's ports). Depends on Application.
+  Coach.Infrastructure.GoogleCalendar/
+                          Read-only Google Calendar adapter (implements
+                          Application's ICalendarReader). Standalone so the
+                          Google.Apis dependency stays out of Coach.Infrastructure.
   Coach.Web/              Blazor Server UI + composition root (Program.cs). Depends
-                          on Application + Infrastructure.
+                          on Application + Infrastructure + Infrastructure.GoogleCalendar.
 tests/
   Coach.Application.Tests/   xUnit tests for the Persona Registry, Context Builder,
-                             Goal Tracking, and Reflections (no DB or model call
-                             needed).
+                             Goal Tracking, Reflections, and prompt formatting (no
+                             DB or model call needed).
+  Coach.Infrastructure.GoogleCalendar.Tests/
+                             xUnit tests for the calendar adapter's date-range
+                             handling and Google response normalization, against a
+                             faked API client (no network).
 scripts/
   build-web-assets.ps1   Local-dev helper: builds Tailwind CSS + vendors Alpine.js
                           into wwwroot so `dotnet run` works without Docker.
@@ -49,6 +57,11 @@ Configure `ConnectionStrings:CoachDb` and the `AzureAi:Endpoint` / `AzureAi:ApiK
 to actually reach Postgres and the model. Without them, the app still starts and the
 chat page surfaces the resulting failure inline rather than crashing.
 
+Optionally configure `GoogleCalendar:ClientId` / `GoogleCalendar:ClientSecret` /
+`GoogleCalendar:RefreshToken` to fold the user's upcoming (read-only) calendar
+events into every coach's context — see `docs/google-calendar-setup.md` for the
+one-time OAuth steps. Without them the calendar slice is simply empty.
+
 EF Core migrations apply automatically at startup (best-effort — a failure is logged,
 not fatal). To add a new migration:
 
@@ -56,10 +69,10 @@ not fatal). To add a new migration:
 dotnet ef migrations add <Name> --project src/Coach.Infrastructure --startup-project src/Coach.Web -o Migrations
 ```
 
-Run the Application-layer unit tests with:
+Run the unit tests with:
 
 ```powershell
-dotnet test tests/Coach.Application.Tests
+dotnet test
 ```
 
 ## Deploying

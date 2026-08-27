@@ -5,7 +5,7 @@ description: Explains this repo's layering (Domain/Application/Infrastructure/We
 
 # personal-coach architecture
 
-Ports & adapters, four projects under `src/`, mirrored by one test project per source project under `tests/`.
+Ports & adapters, projects under `src/`, mirrored by one test project per source project under `tests/` (the four core projects plus per-external-API adapter projects like `Coach.Infrastructure.GoogleCalendar`).
 
 ## Layering (dependency direction only ever points down this list)
 
@@ -27,13 +27,14 @@ Ports & adapters, four projects under `src/`, mirrored by one test project per s
    - `Migrations/` — EF migrations + model snapshot (namespace `Coach.Infrastructure.Migrations`).
    - `Options/` — config POCOs bound via `services.Configure<T>(...)` (`AzureAiOptions`, section `"AzureAi"`).
    - The Azure OpenAI wiring has no client class of its own: `DependencyInjection` builds and registers the `AIAgent` singleton Application consumes directly (`AzureOpenAIClient.GetChatClient(...).AsIChatClient().AsAIAgent(...)`, from `Microsoft.Extensions.AI.OpenAI` + `Microsoft.Agents.AI`) — no persona instructions or tools are baked in at agent-creation time, since both vary per turn and are supplied on each `RunAsync` call.
+3b. **`Coach.Infrastructure.GoogleCalendar`** (and future `Coach.Infrastructure.<ExternalApi>` siblings) — a standalone adapter project per third-party SDK, so a heavy/vulnerable dependency (`Google.Apis.*`) never enters `Coach.Infrastructure`. References `Coach.Application` + `Coach.Domain` only. Flat layout, its own `DependencyInjection.AddCoachGoogleCalendar(config)`. Pattern inside: a `public`-surface-free adapter — only the port impl (`internal GoogleCalendarReader : ICalendarReader`) and the `Add...` method are reachable; an `internal` seam interface (`IGoogleCalendarEvents`) wraps the raw SDK call so the reader's own logic (date-range math) and a pure mapper (`GoogleCalendarEventMapper`, SDK-types → Application model) are unit-tested against a fake with `[InternalsVisibleTo]` for the test project. Live-data readers **swallow failures and return an empty result** (see `ICalendarReader` docs) so a missing/broken integration never breaks a coach turn.
 4. **`Coach.Web`** — Blazor Server (interactive server render mode), Tailwind CSS (compiled via standalone CLI, no Node/npm), Alpine.js only for interactivity that doesn't warrant a Blazor round-trip. Pages inject Application services/ports directly via `@inject` — there is no separate web-facing service layer. See the `coach-ui-design` skill for the actual visual/interaction conventions.
 
 ## Wiring
 
-Each of `Coach.Application` and `Coach.Infrastructure` exposes one `DependencyInjection.cs` with an `AddCoachXxx(...)` extension method registering everything in that layer. `Coach.Web/Program.cs` calls both. Follow existing lifetime choices: `CoachPersonaRegistry` is a `Singleton` (static in-memory data); stores/DbContext/services that touch a request's `DbContext` are `Scoped`; the `AIAgent` is a `Singleton` (stateless/thread-safe, like the underlying `ChatClient`).
+Each of `Coach.Application`, `Coach.Infrastructure`, and `Coach.Infrastructure.GoogleCalendar` exposes one `DependencyInjection.cs` with an `AddCoachXxx(...)` extension method registering everything in that project. `Coach.Web/Program.cs` calls each. Follow existing lifetime choices: `CoachPersonaRegistry` is a `Singleton` (static in-memory data); stores/DbContext/services that touch a request's `DbContext` are `Scoped`; the `AIAgent` is a `Singleton` (stateless/thread-safe, like the underlying `ChatClient`).
 
-Config-driven infra (`AzureAiOptions`, the Postgres connection string) falls back to an "unconfigured" placeholder rather than throwing at startup, so the app still boots locally without secrets — failures surface when the feature is actually used, not at process start.
+Config-driven infra (`AzureAiOptions`, `GoogleCalendarOptions`, the Postgres connection string) falls back to an "unconfigured" placeholder rather than throwing at startup, so the app still boots locally without secrets — failures surface when the feature is actually used, not at process start (the calendar reader goes further and stays silent, returning no events).
 
 ## Persistence conventions
 
