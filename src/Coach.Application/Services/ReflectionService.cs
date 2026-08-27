@@ -15,13 +15,12 @@ public sealed class ReflectionService(IReflectionStore reflectionStore)
     {
         // content is a tool-call argument -- untrusted model output that can arrive null or blank.
         // A validation failure here surfaces as text via ModelToolGuard rather than throwing.
-        var trimmedContent = (content ?? string.Empty).Trim();
-        if (trimmedContent.Length == 0)
+        if (string.IsNullOrWhiteSpace(content))
         {
             throw new ArgumentException("Reflection content is required.", nameof(content));
         }
 
-        var reflection = Reflection.Create(coachSlug, trimmedContent);
+        var reflection = Reflection.Create(coachSlug, content.Trim());
         await reflectionStore.AddAsync(reflection, cancellationToken);
         return reflection;
     }

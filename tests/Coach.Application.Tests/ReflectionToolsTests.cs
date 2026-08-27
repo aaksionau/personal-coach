@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Coach.Application.Services;
 using Coach.Application.Tests.Fakes;
 using Microsoft.Extensions.AI;
+using static Coach.Application.Tests.ToolTestHelpers;
 
 namespace Coach.Application.Tests;
 
@@ -11,7 +11,7 @@ public class ReflectionToolsTests
     public async Task RecordReflection_PersistsTheReflection_ForTheCoach()
     {
         var store = new FakeReflectionStore();
-        var tool = GetTool(new ReflectionTools(new ReflectionService(store), "career"), "record_reflection");
+        var tool = GetTool(new ReflectionTools(new ReflectionService(store), "career").AsTools(), "record_reflection");
 
         var result = await tool.InvokeAsync(new AIFunctionArguments
         {
@@ -30,16 +30,11 @@ public class ReflectionToolsTests
     public async Task RecordReflection_ReturnsAnErrorString_InsteadOfThrowing_ForMissingContent(string? content)
     {
         var store = new FakeReflectionStore();
-        var tool = GetTool(new ReflectionTools(new ReflectionService(store), "career"), "record_reflection");
+        var tool = GetTool(new ReflectionTools(new ReflectionService(store), "career").AsTools(), "record_reflection");
 
         var result = await tool.InvokeAsync(new AIFunctionArguments { ["content"] = content });
 
         Assert.Empty(store.Added);
         Assert.Contains("Could not complete the action", AsText(result));
     }
-
-    private static AIFunction GetTool(ReflectionTools tools, string name) =>
-        (AIFunction)tools.AsTools().Single(tool => tool.Name == name);
-
-    private static string AsText(object? result) => ((JsonElement)result!).GetString()!;
 }
