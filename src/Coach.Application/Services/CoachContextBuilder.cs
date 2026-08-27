@@ -5,15 +5,16 @@ namespace Coach.Application.Services;
 
 /// <summary>
 /// Assembles the context bundle for a coach call. v1 includes the persona, a recent message
-/// window, the coach's own goal/action-item state, and its recent reflections -- no values,
-/// calendar, cross-coach summary, or Garmin data yet. Deliberately separate from the Conversation
+/// window, the coach's own goal/action-item state, its recent reflections, and the user's global
+/// values profile -- no calendar or Garmin data yet. Deliberately separate from the Conversation
 /// Engine so it's testable without a model call.
 /// </summary>
 public sealed class CoachContextBuilder(
     IChatMessageStore chatMessageStore,
     CoachPersonaRegistry personaRegistry,
     GoalTrackingService goalTrackingService,
-    ReflectionService reflectionService)
+    ReflectionService reflectionService,
+    ValuesProfileService valuesProfileService)
 {
     private const int RecentMessageWindow = 20;
     private const int RecentReflectionWindow = 10;
@@ -28,8 +29,10 @@ public sealed class CoachContextBuilder(
         var recentMessagesTask = chatMessageStore.GetRecentAsync(coachSlug, RecentMessageWindow, cancellationToken);
         var goalsTask = goalTrackingService.GetGoalsAsync(coachSlug, cancellationToken);
         var reflectionsTask = reflectionService.GetRecentReflectionsAsync(coachSlug, RecentReflectionWindow, cancellationToken);
-        await Task.WhenAll(recentMessagesTask, goalsTask, reflectionsTask);
+        var valuesProfileTask = valuesProfileService.GetProfileAsync(cancellationToken);
+        await Task.WhenAll(recentMessagesTask, goalsTask, reflectionsTask, valuesProfileTask);
 
-        return new CoachContext(persona, recentMessagesTask.Result, goalsTask.Result, reflectionsTask.Result);
+        return new CoachContext(
+            persona, recentMessagesTask.Result, goalsTask.Result, reflectionsTask.Result, valuesProfileTask.Result);
     }
 }

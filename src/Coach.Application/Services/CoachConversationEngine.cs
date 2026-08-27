@@ -28,6 +28,7 @@ public sealed class CoachConversationEngine(
         await chatMessageStore.AddAsync(userChatMessage, cancellationToken);
 
         var systemPrompt = context.Persona.SystemPrompt
+            + "\n\n" + ValuesContextFormatter.Format(context.ValuesProfile)
             + "\n\n" + GoalContextFormatter.Format(context.Goals)
             + "\n\n" + ReflectionContextFormatter.Format(context.Reflections);
 

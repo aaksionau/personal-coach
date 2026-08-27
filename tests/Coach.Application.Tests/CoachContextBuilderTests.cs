@@ -28,7 +28,8 @@ public class CoachContextBuilderTests
             store,
             new CoachPersonaRegistry(),
             new GoalTrackingService(new FakeGoalStore()),
-            new ReflectionService(new FakeReflectionStore()));
+            new ReflectionService(new FakeReflectionStore()),
+            new ValuesProfileService(new FakeValuesProfileStore()));
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -44,7 +45,8 @@ public class CoachContextBuilderTests
             store,
             new CoachPersonaRegistry(),
             new GoalTrackingService(new FakeGoalStore()),
-            new ReflectionService(new FakeReflectionStore()));
+            new ReflectionService(new FakeReflectionStore()),
+            new ValuesProfileService(new FakeValuesProfileStore()));
 
         await builder.BuildAsync("career", CancellationToken.None);
 
@@ -62,7 +64,8 @@ public class CoachContextBuilderTests
             new FakeChatMessageStore(),
             new CoachPersonaRegistry(),
             goalService,
-            new ReflectionService(new FakeReflectionStore()));
+            new ReflectionService(new FakeReflectionStore()),
+            new ValuesProfileService(new FakeValuesProfileStore()));
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
@@ -80,12 +83,32 @@ public class CoachContextBuilderTests
             new FakeChatMessageStore(),
             new CoachPersonaRegistry(),
             new GoalTrackingService(new FakeGoalStore()),
-            reflectionService);
+            reflectionService,
+            new ValuesProfileService(new FakeValuesProfileStore()));
 
         var context = await builder.BuildAsync("career", CancellationToken.None);
 
         Assert.Single(context.Reflections);
         Assert.Equal("I default to yes under pressure.", context.Reflections[0].Content);
         Assert.Equal("career", reflectionStore.LastRequestedCoachSlug);
+    }
+
+    [Fact]
+    public async Task BuildAsync_IncludesTheCurrentValuesProfile_WithoutInvokingAModel()
+    {
+        var valuesStore = new FakeValuesProfileStore();
+        var valuesService = new ValuesProfileService(valuesStore);
+        await valuesService.SaveProfileAsync("Autonomy over title; family evenings are protected.", CancellationToken.None);
+        var builder = new CoachContextBuilder(
+            new FakeChatMessageStore(),
+            new CoachPersonaRegistry(),
+            new GoalTrackingService(new FakeGoalStore()),
+            new ReflectionService(new FakeReflectionStore()),
+            valuesService);
+
+        var context = await builder.BuildAsync("career", CancellationToken.None);
+
+        Assert.NotNull(context.ValuesProfile);
+        Assert.Equal("Autonomy over title; family evenings are protected.", context.ValuesProfile!.Content);
     }
 }

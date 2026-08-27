@@ -1,0 +1,110 @@
+@page "/values/wizard"
+@rendermode InteractiveServer
+@implements IDisposable
+@using Coach.Application.Models
+@using Coach.Application.Services
+@inject ValuesWizardService ValuesWizardService
+
+<PageTitle>Coach - Values Setup</PageTitle>
+
+<div class="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 sm:px-6">
+    <div class="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
+        @for (var i = 0; i < _messages.Count; i++)
+        {
+            var message = _messages[i];
+            <ChatBubble IsUser="message.IsUser" Content="message.Content" @key="i" />
+        }
+        @if (_pendingUserMessage is not null)
+        {
+            <ChatBubble IsUser="true" Content="_pendingUserMessage" Pending="true" />
+        }
+    </div>
+
+    @if (_saved)
+    {
+        <div class="mb-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
+            Your values profile is saved.
+            <a href="/values" class="font-medium text-slate-900 underline">View or edit it</a>.
+        </div>
+    }
+
+    @if (_busy.Error is not null)
+    {
+        <div
+            class="mb-3 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700"
+            x-data="{ show: true }"
+            x-show="show"
+            x-transition>
+            <span>@_busy.Error</span>
+            <button type="button" class="shrink-0 font-medium text-red-700/70 hover:text-red-900" x-on:click="show = false">✕</button>
+        </div>
+    }
+
+    <form class="flex gap-2 border-t border-slate-200 py-3" @onsubmit="SendAsync">
+        <input
+            class="min-w-0 flex-1 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm shadow-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            @bind="_draft"
+            @bind:event="oninput"
+            placeholder="@(_saved ? "All done — nothing more to answer" : "Type your answer...")"
+            disabled="@(_busy.Busy || _saved)" />
+        <button
+            type="submit"
+            class="shrink-0 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
+            disabled="@(_busy.Busy || _saved || string.IsNullOrWhiteSpace(_draft))">
+            Send
+        </button>
+    </form>
+</div>
+
+@code {
+    private const string Greeting =
+        "Hi! I'll ask you a handful of questions to understand what matters to you — across your "
+        + "career, health, relationships, parenting, and life in general. There are no right answers. "
+        + "When we're done I'll save a short summary that every coach will use. To start: what does a "
+        + "good week look like for you right now?";
+
+    private readonly BusyState _busy = new();
+    private readonly CancellationTokenSource _cts = new();
+    private readonly List<ValuesWizardMessage> _messages = [new ValuesWizardMessage(IsUser: false, Greeting)];
+
+    private string _draft = string.Empty;
+    private string? _pendingUserMessage;
+    private bool _saved;
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_draft) || _busy.Busy || _saved)
+        {
+            return;
+        }
+
+        var userMessage = _draft;
+        _draft = string.Empty;
+        _pendingUserMessage = userMessage;
+
+        // The transcript before this turn -- ContinueAsync appends the user message itself.
+        var history = _messages.ToList();
+
+        await _busy.RunAsync(
+            async () =>
+            {
+                var reply = await ValuesWizardService.ContinueAsync(history, userMessage, _cts.Token);
+                _messages.Add(new ValuesWizardMessage(IsUser: true, userMessage));
+                _messages.Add(new ValuesWizardMessage(IsUser: false, reply.Reply));
+                _saved = reply.ProfileSaved;
+            },
+            ex =>
+            {
+                _draft = userMessage;
+                return $"Something went wrong: {ex.Message}";
+            });
+
+        _pendingUserMessage = null;
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}
